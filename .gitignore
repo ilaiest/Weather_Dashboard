@@ -1,0 +1,26 @@
+# Ignorar credenciales de Google Sheets
+credentials.json
+
+# Ignorar archivos de entorno
+.env
+
+# Ignorar caché de Python y archivos compilados
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar entornos virtuales de Python
+venv/
+.venv/
+
+# Ignorar configuraciones de IDEs como PyCharm y VSCode
+.idea/
+.vscode/
+
+# Ignorar archivos de logs
+*.log
+logs/
+
+# Ignorar archivos temporales de Streamlit y otros
+.streamlit/
