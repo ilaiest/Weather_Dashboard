@@ -6,8 +6,6 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.express as px
 
-# 🚀 **Debe ser la primera línea de Streamlit**
-st.set_page_config(page_title="Weather Dashboard", layout="wide")
 
 # 🔹 Configuración de Google Sheets
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
