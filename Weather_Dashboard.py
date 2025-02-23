@@ -94,24 +94,20 @@ if page == "🌍 City Overview":
     weather_df = fetch_weather_data(selected_date, selected_team, selected_cluster)
 
     if not weather_df.empty:
-        num_cols = 3
-        rows = [weather_df.iloc[i:i + num_cols] for i in range(0, len(weather_df), num_cols)]
-
-        for row in rows:
-            cols = st.columns(num_cols)
-            for idx, (col, row_data) in enumerate(zip(cols, row.itertuples())):
-                weather_icon = weather_icons.get(row_data.main_condition, "🌍")
-                with col:
-                    st.markdown(
-                        f"""
-                        <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; margin-bottom: 10px;">
-                            <h3 style="color: #00AEEF;">{weather_icon} {row_data.city}</h3>
-                            <p>🌡️ <strong>Temperature:</strong> {row_data.temp}°C (Feels Like: {row_data.feels_like}°C)</p>
-                            <p>🌬️ <strong>Wind Speed:</strong> {row_data.wind_speed} km/h</p>
-                            <p>💧 <strong>Humidity:</strong> {row_data.humidity}%</p>
-                        </div>
-                        """, unsafe_allow_html=True
-                    )
+        cols = st.columns(3)  # Mostrar en 3 columnas
+        for idx, row in weather_df.iterrows():
+            weather_icon = weather_icons.get(row['weather_condition'], "🌎")  
+            with cols[idx % 3]:  
+                st.markdown(
+                    f"""
+                    <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
+                        <h3>{weather_icon} {row['city']}</h3>
+                        <p>🌡️ Temperature: {row['temp']}°C | Feels Like: {row['feels_like']}°C</p>
+                        <p>🌬️ Wind Speed: {row['wind_speed']} km/h</p>
+                        <p>💧 Humidity: {row['humidity']}%</p>
+                    </div>
+                    """, unsafe_allow_html=True
+                )
     else:
         st.warning("No weather data available for the selected filters.")
 
@@ -127,14 +123,13 @@ elif page == "📊 Detailed Forecast":
 
         if not city_forecast_df.empty:
             today_weather = city_forecast_df.iloc[0]
-            weather_icon = weather_icons.get(today_weather["weather_condition"].strip().lower(), "🌎")
+            weather_icon = weather_icons.get(today_weather["weather_condition"], "🌎")
 
             st.markdown(f"""
-                <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; text-align: center;">
+                <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
                     <h2 style="color: #00AEEF;">{selected_city} - {today_weather['date']}</h2>
                     <h1 style="font-size: 60px;">{weather_icon} {today_weather['temp']}°C</h1>
                     <p style="font-size: 20px;">Feels Like: {today_weather['feels_like']}°C</p>
-                    <p style="font-size: 18px;">{today_weather['weather_condition']}</p>
                 </div>
             """, unsafe_allow_html=True)
 
