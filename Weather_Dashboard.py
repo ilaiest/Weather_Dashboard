@@ -45,17 +45,28 @@ def load_google_sheets():
 
 # 🔹 **Diccionario de Iconos de Clima**
 # Weather Icons Dictionary
-weather_icons = {
-    "Clear": "☀️",
-    "Clouds": "☁️",
-    "Drizzle": "🌦️",
-    "Rain": "🌧️",
-    "Thunderstorm": "⛈️",
-    "Snow": "❄️",
-    "Mist": "🌫️",
-    "Fog": "🌫️",
-    "Haze": "🌁"
-}
+    weather_icons = {
+        "clear sky": "☀️",
+        "few clouds": "🌤️",
+        "scattered clouds": "⛅",
+        "broken clouds": "☁️",
+        "overcast clouds": "🌥️",
+        "drizzle": "🌦️",
+        "light rain": "🌦️",
+        "moderate rain": "🌧️",
+        "heavy rain": "🌧️",
+        "thunderstorm": "⛈️",
+        "snow": "❄️",
+        "mist": "🌫️",
+        "fog": "🌫️",
+        "haze": "🌁",
+        "smoke": "🌫️",
+        "dust": "💨",
+        "sand": "💨",
+        "volcanic ash": "🌋",
+        "squalls": "🌬️",
+        "tornado": "🌪️"
+    }
 
 # 🔹 **Función para obtener datos de clima filtrados
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
@@ -107,7 +118,7 @@ if page == "🌍 City Overview":
     if not weather_df.empty:
         cols = st.columns(3)  # 3 ciudades por fila
         for idx, row in weather_df.iterrows():
-            weather_icon = weather_icons.get(row['main condition'], "🌎")
+            weather_icon = weather_icons.get(row['weather_condition'], "🌎")
             with cols[idx % 3]:
                 st.markdown(
                     f"""
