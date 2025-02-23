@@ -25,8 +25,15 @@ except Exception as e:
 
 # 🔹 Diccionario de Iconos de Clima
 weather_icons = {
-    "Clear": "☀️", "Clouds": "☁️", "Drizzle": "🌦️", "Rain": "🌧️",
-    "Thunderstorm": "⛈️", "Snow": "❄️", "Mist": "🌫️", "Fog": "🌫️", "Haze": "🌁"
+    "Clear": "☀️",
+    "Clouds": "☁️",
+    "Drizzle": "🌦️",
+    "Rain": "🌧️",
+    "Thunderstorm": "⛈️",
+    "Snow": "❄️",
+    "Mist": "🌫️",
+    "Fog": "🌫️",
+    "Haze": "🌁"
 }
 
 # 🔹 Función para Cargar Datos de Google Sheets
@@ -38,13 +45,12 @@ def load_google_sheets():
         data = worksheet.get_all_values()
         weather_df = pd.DataFrame(data[1:], columns=data[0])
 
-        # Convertir tipos de datos
         weather_df["date"] = pd.to_datetime(weather_df["date"]).dt.date
-        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity"]
-        for col in numeric_cols:
-            weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
+        weather_df["temp"] = pd.to_numeric(weather_df["temp"], errors="coerce")
+        weather_df["feels_like"] = pd.to_numeric(weather_df["feels_like"], errors="coerce")
+        weather_df["wind_speed"] = pd.to_numeric(weather_df["wind_speed"], errors="coerce")
+        weather_df["humidity"] = pd.to_numeric(weather_df["humidity"], errors="coerce")
 
-        # Cargar datos de equipos y clusters
         team_worksheet = spreadsheet.worksheet("City_Team_Cluster")
         team_data = team_worksheet.get_all_values()
         team_df = pd.DataFrame(team_data[1:], columns=team_data[0])
@@ -72,27 +78,44 @@ def fetch_city_forecast(city):
     weather_df, _ = load_google_sheets()
     return weather_df[weather_df["city"] == city]
 
-# 🚀 Sidebar: View Selection
+# 🔹 Sidebar: Filtros y Navegación
 st.sidebar.markdown("## 🌎 **Weather Navigation**", unsafe_allow_html=True)
 page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], label_visibility="collapsed")
 
 # 📅 Filtros
-selected_date = st.sidebar.date_input("📅 Select Date", datetime.today()).strftime("%Y-%m-%d")
+selected_date = st.sidebar.date_input("📅 Select Date", datetime.today().date())
 selected_team = st.sidebar.selectbox("🏢 Select Team", ["All", "MX", "POC", "CASA"])
-selected_cluster = st.sidebar.selectbox("📍 Select Cluster",
-                                        ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
+selected_cluster = st.sidebar.selectbox("📍 Select Cluster", ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
 
-# 🌍 **City Overview**
+# 🌍 SECCIÓN 1: City Overview
 if page == "🌍 City Overview":
-    st.markdown(f"## 🌍 Weather Overview for {selected_date}")
+    st.markdown(f"<h2 style='color:#00AEEF;'>🌎 Weather Overview for {selected_date}</h2>", unsafe_allow_html=True)
 
     weather_df = fetch_weather_data(selected_date, selected_team, selected_cluster)
 
     if not weather_df.empty:
-        cols = st.columns(3)  # 3 ciudades por fila
+        num_cols = 3
+        rows = [weather_df.iloc[i:i + num_cols] for i in range(0, len(weather_df), num_cols)]
+
+        for row in rows:
+            cols = st.columns(num_cols)
+            for idx, (col, row_data) in enumerate(zip(cols, row.itertuples())):
+                weather_icon = weather_icons.get(row_data.main_condition, "🌍")
+                with col:
+                    st.markdown(
+                        f"""
+                        <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; margin-bottom: 10px;">
+                            <h3 style="color: #00AEEF;">{weather_icon} {row_data.city}</h3>
+                            <p>🌡️ <strong>Temperature:</strong> {row_data.temp}°C (Feels Like: {row_data.feels_like}°C)</p>
+                            <p>🌬️ <strong>Wind Speed:</strong> {row_data.wind_speed} km/h</p>
+                            <p>💧 <strong>Humidity:</strong> {row_data.humidity}%</p>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
+        cols = st.columns(3)  # Mostrar en 3 columnas
         for idx, row in weather_df.iterrows():
-            weather_icon = weather_icons.get(row['main_condition'], "🌎")
-            with cols[idx % 3]:
+            weather_icon = weather_icons.get(row['weather_condition'], "🌎")  
+            with cols[idx % 3]:  
                 st.markdown(
                     f"""
                     <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
@@ -106,45 +129,19 @@ if page == "🌍 City Overview":
     else:
         st.warning("No weather data available for the selected filters.")
 
-# 📊 **Detailed Forecast**
-elif page == "📊 Detailed Forecast":
-    st.markdown("## 📊 5-Day Forecast")
-
-    city_list = ["Select a City"] + fetch_weather_data(selected_date, selected_team, selected_cluster)[
-        "city"].unique().tolist()
-    selected_city = st.selectbox("🏙️ Choose a City", city_list)
-
-    if selected_city != "Select a City":
-        city_forecast_df = fetch_city_forecast(selected_city)
+@@ -127,14 +123,13 @@
 
         if not city_forecast_df.empty:
             today_weather = city_forecast_df.iloc[0]
-            normalized_condition = today_weather["weather_condition"].strip().lower()
-            weather_icon = weather_icons.get(normalized_condition, "🌎")
+            weather_icon = weather_icons.get(today_weather["weather_condition"].strip().lower(), "🌎")
+            weather_icon = weather_icons.get(today_weather["weather_condition"], "🌎")
 
-            # 🌡️ **Tarjeta de clima principal**
             st.markdown(f"""
                 <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; text-align: center;">
-                    <h2>{selected_city} - {today_weather['date']}</h2>
-                    <h1>{weather_icon} {today_weather['temp']}°C</h1>
-                    <p>Feels Like: {today_weather['feels_like']}°C</p>
-                    <p>🌬️ Wind Speed: {today_weather['wind_speed']} km/h | 💧 Humidity: {today_weather['humidity']}%</p>
+                <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
+                    <h2 style="color: #00AEEF;">{selected_city} - {today_weather['date']}</h2>
+                    <h1 style="font-size: 60px;">{weather_icon} {today_weather['temp']}°C</h1>
+                    <p style="font-size: 20px;">Feels Like: {today_weather['feels_like']}°C</p>
+                    <p style="font-size: 18px;">{today_weather['weather_condition']}</p>
                 </div>
             """, unsafe_allow_html=True)
-
-            # 📊 **Tendencia de temperatura**
-            st.markdown("### 📈 Temperature Trends")
-            fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"],
-                               labels={"value": "Temperature (°C)", "date": "Date"},
-                               title="🌡️ Temperature Over the Next Days", markers=True)
-            st.plotly_chart(fig_temp, use_container_width=True)
-
-            # 🌧️ **Tendencia de lluvia**
-            st.markdown("### 🌧️ Rain Probability Trend")
-            fig_rain = px.bar(city_forecast_df, x="date", y="rain_probability",
-                              title="🌧️ Rain Probability Over the Next Days",
-                              labels={"rain_probability": "Rain Probability (%)"}, text="rain_probability")
-            st.plotly_chart(fig_rain, use_container_width=True)
-
-        else:
-            st.warning("No forecast data available for this city.")
