@@ -6,6 +6,9 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.express as px
 
+# 🚀 **Debe ser la primera línea de Streamlit**
+st.set_page_config(page_title="Weather Dashboard", layout="wide")
+
 # 🔹 Configuración de Google Sheets
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
@@ -74,9 +77,6 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
 def fetch_city_forecast(city):
     weather_df, _ = load_google_sheets()
     return weather_df[weather_df["city"] == city]
-
-# 🚀 Configuración de Streamlit
-st.set_page_config(page_title="Weather Dashboard", layout="wide")
 
 # 🔹 Sidebar: Filtros y Navegación
 st.sidebar.markdown("## 🌎 **Weather Navigation**", unsafe_allow_html=True)
