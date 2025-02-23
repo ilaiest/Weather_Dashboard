@@ -44,29 +44,18 @@ def load_google_sheets():
         return pd.DataFrame(), pd.DataFrame()
 
 # 🔹 **Diccionario de Iconos de Clima**
+# Weather Icons Dictionary
 weather_icons = {
-    "clear sky": "☀️",
-    "few clouds": "🌤️",
-    "scattered clouds": "⛅",
-    "broken clouds": "☁️",
-    "overcast clouds": "🌥️",
-    "drizzle": "🌦️",
-    "light rain": "🌦️",
-    "moderate rain": "🌧️",
-    "heavy rain": "🌧️",
-    "thunderstorm": "⛈️",
-    "snow": "❄️",
-    "mist": "🌫️",
-    "fog": "🌫️",
-    "haze": "🌁",
-    "smoke": "🌫️",
-    "dust": "💨",
-    "sand": "💨",
-    "volcanic ash": "🌋",
-    "squalls": "🌬️",
-    "tornado": "🌪️"
+    "Clear": "☀️",
+    "Clouds": "☁️",
+    "Drizzle": "🌦️",
+    "Rain": "🌧️",
+    "Thunderstorm": "⛈️",
+    "Snow": "❄️",
+    "Mist": "🌫️",
+    "Fog": "🌫️",
+    "Haze": "🌁"
 }
-
 
 # 🔹 **Función para obtener datos de clima filtrados
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
