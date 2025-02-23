@@ -45,7 +45,7 @@ def load_google_sheets():
 
 # 🔹 **Diccionario de Iconos de Clima**
 # Weather Icons Dictionary
-    weather_icons = {
+    weather_icon = {
         "clear sky": "☀️",
         "few clouds": "🌤️",
         "scattered clouds": "⛅",
@@ -118,7 +118,7 @@ if page == "🌍 City Overview":
     if not weather_df.empty:
         cols = st.columns(3)  # 3 ciudades por fila
         for idx, row in weather_df.iterrows():
-            weather_icon = weather_icons.get(row['weather_condition'], "🌎")
+            weather_icon = weather_icon.get(row['weather_condition'], "🌎")
             with cols[idx % 3]:
                 st.markdown(
                     f"""
