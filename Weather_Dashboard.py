@@ -59,15 +59,29 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
     if not team_df.empty:
         weather_df = weather_df.merge(team_df, on="city", how="left")
     
-    # Mostrar columnas después del merge para depuración
+    # ✅ Mostrar columnas después del merge para depuración
     st.write("Columnas después del merge:", weather_df.columns.tolist())
 
-    # Verificar si 'team' y 'cluster' existen antes de filtrar
+    # ✅ Mostrar valores únicos de 'cluster' para verificar formato
+    if "cluster" in weather_df.columns:
+        st.write("Valores únicos de 'cluster' después del merge:", weather_df["cluster"].unique())
+
+    # ✅ Reemplazar valores NaN en 'cluster' con "Unknown"
+    weather_df["cluster"] = weather_df["cluster"].fillna("Unknown")
+
+    # ✅ Convertir a string y eliminar espacios en blanco para evitar errores de comparación
+    weather_df["cluster"] = weather_df["cluster"].astype(str).str.strip()
+    selected_cluster = selected_cluster.strip()
+
+    # ✅ Verificar si 'team' y 'cluster' existen antes de filtrar
     if "team" in weather_df.columns and selected_team != "All":
         weather_df = weather_df[weather_df["team"] == selected_team]
 
     if "cluster" in weather_df.columns and selected_cluster != "All":
-        weather_df = weather_df[weather_df["cluster"] == selected_cluster]
+        if selected_cluster in weather_df["cluster"].unique():
+            weather_df = weather_df[weather_df["cluster"] == selected_cluster]
+        else:
+            st.warning(f"No hay datos para el cluster '{selected_cluster}'. Mostrando todos los datos.")
     
     return weather_df
 
