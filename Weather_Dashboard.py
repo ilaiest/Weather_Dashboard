@@ -129,7 +129,15 @@ if page == "🌍 City Overview":
     else:
         st.warning("No weather data available for the selected filters.")
 
-@@ -127,14 +123,13 @@
+# 📊 SECCIÓN 2: Detailed Forecast
+elif page == "📊 Detailed Forecast":
+    st.markdown("## 📊 5-Day Forecast")
+
+    city_list = ["Select a City"] + fetch_weather_data(selected_date, selected_team, selected_cluster)["city"].unique().tolist()
+    selected_city = st.selectbox("🏙️ Choose a City", city_list)
+
+    if selected_city != "Select a City":
+        city_forecast_df = fetch_city_forecast(selected_city)
 
         if not city_forecast_df.empty:
             today_weather = city_forecast_df.iloc[0]
@@ -145,3 +153,12 @@ if page == "🌍 City Overview":
                     <p style="font-size: 18px;">{today_weather['weather_condition']}</p>
                 </div>
             """, unsafe_allow_html=True)
+
+            st.markdown("### 📈 Temperature Trends")
+            fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"],
+                               labels={"value": "Temperature (°C)", "date": "Date"},
+                               title="🌡️ Temperature Over the Next Days", markers=True)
+            st.plotly_chart(fig_temp, use_container_width=True)
+
+        else:
+            st.warning("No forecast data available for this city.")
