@@ -7,14 +7,22 @@ from google.oauth2 import service_account
 from datetime import datetime
 import plotly.express as px
 
-# 🔹 Leer credenciales desde Streamlit Secrets
-GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
-creds_dict = json.loads(GOOGLE_CREDENTIALS)
-
-# 🔹 Autenticación con Google Sheets
-creds = service_account.Credentials.from_service_account_info(creds_dict)
-client = gspread.authorize(creds)
-spreadsheet = client.open("Weather_Dashboard")
+# 🔹 Cargar credenciales desde Streamlit Secrets
+try:
+    GOOGLE_CREDENTIALS = st.secrets["GOOGLE_CREDENTIALS"]
+    creds_dict = json.loads(GOOGLE_CREDENTIALS)
+    creds = service_account.Credentials.from_service_account_info(creds_dict)
+    client = gspread.authorize(creds)
+    spreadsheet = client.open("Weather_Dashboard")
+except json.JSONDecodeError:
+    st.error("❌ Error al leer las credenciales. Verifica el formato en Streamlit Secrets.")
+    st.stop()
+except gspread.exceptions.APIError:
+    st.error("❌ No se pudo conectar con Google Sheets. Verifica permisos y acceso al archivo.")
+    st.stop()
+except Exception as e:
+    st.error(f"❌ Error al autenticar con Google Sheets: {e}")
+    st.stop()
 
 # 🔹 Diccionario de Iconos de Clima
 weather_icons = {
