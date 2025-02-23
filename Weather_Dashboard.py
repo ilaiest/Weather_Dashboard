@@ -11,17 +11,17 @@ SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 
 # 🔹 NUEVO Service Account (Copiar los datos desde el JSON)
 GOOGLE_CREDENTIALS = {
-    "type": "service_account",
-    "project_id": "weatherdashboard-451702",
-    "private_key_id": "XXXXXXXXXXXXX",
-    "private_key": "-----BEGIN PRIVATE KEY-----\nXXXXX\n-----END PRIVATE KEY-----\n",
-    "client_email": "weather-dashboard-service@weatherdashboard-451702.iam.gserviceaccount.com",
-    "client_id": "XXXXXXXXXXXX",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/weather-dashboard-service%40weatherdashboard-451702.iam.gserviceaccount.com",
-    "universe_domain": "googleapis.com"
+  "type": "service_account",
+  "project_id": "weatherdashboard-451702",
+  "private_key_id": "07957c723aedea4d2c24ed6647961f6e5ef87e97",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC0PxLYyOyorZer\n0UfvuhbC3jXTxRuCdIRkzidLCkWp+JyRO9aYp7V4Xn5nEcQmdwIufAhmOnxlH0LO\n1F0wRwq8V9qkrlOV95B+uP2oG89AR5PmlEdbUemxgSHUvWkkD3pf3UNJP667IVgF\nnBQj6+qZeb8KD0/u6izyA3DkpbgrtMqMwpR9PPpinXXZ5IY5UDWHakGuRpUT7HwA\nW8anj9PozOWVbl7e8qwa5AFabvRAjegvqBnIsNBnxXha7naKkXzfVa4pD6JREJW2\ntxC2tLZrBKzxJGA8z4Tmp4+Sd7B9iR/kJ5ok3r7JKrtyE45yxIV8ekYc99k6wxmT\n8kiXD4qbAgMBAAECggEAM8vgTZ3HrF1eNYjJhFFUkyEqFLYSxrVXCmTXk8/a3xJL\nY8zvSSUAmBuHdXT8ihUu8k7AVyg9cQ2/tBIAyYvQwPj6ItLZwEHJKzFb60A6mX04\nOk2oB80NO+4g27KmkS9FemDqIhWDz9CwK8SDYSM9YmdDB9AIp15yFgX5HiulNiGd\nTRpclxUwdzl6b/0sTxempDsLe1vG2XjbpoU6cFIArjspmZq8+8FnLuXftrhleAU8\n19OSYBB+T9a6ia9ExMlzK94LvTRg+X4ITEp7FDsgtagDk3Q5JfDnCrSNBqK36ZkT\nO1mR1BrlH+L/XIj0naoEGFrPcwTpb9JqNNYOiQDAKQKBgQDlcL7igL2Ofrik2IGY\nyYOlCZjO02d9KxNfd+Gbg0SelAoBYQvtBkq8ITDhi3Yy2BXNgXkXJNXNAPM1RAAo\nDIN3CbYEdrAeysxwt96SpFpI48V9Iu1BREXvvtIFhp29mgATgaOWb4/3upHiU7KF\nqYkT1cpq4LuNmU1bN9RFTEp1vQKBgQDJHIIknIT5PWfRfQj9t7wQ4WfqTmHzsanx\nB6SUadEZ17FYTpZqvnTsUJKkUfQzAB5SwFalLa2pULRoB7kHYsU0bXFXvX2exFUc\nk7GcamE2Lg1g1GcmqY97eEi0Q50uDjfRZfiWRix+FAvXx4A3CQCylKLyD37a3Y6s\nTgEDe0erNwKBgFCmoiLCeF9nggZIKL4JT+IqjnFddIpWIvgzDrX4nZ1UknPLpkKK\nLKkWzbTqrgDPXlKfyW3uP81RISy/G4L4axnj6vyEsAIS7WxN5coMRcRLdHc5WMbR\ndfgBTpgsqrQkNxSkRFm0G5pMFc3F+AHuB0ZWp1GMb8Ele0CuTkqRt7bNAoGBAJBJ\nJsnzjadvuctfhJLbPk9yGGbPI5F+NqmZzSc5n+6FhFQR1fLxf9uHlx3TOntYq2i9\nW6yYUA64uyYj3EkDQO7zUi0b40OEInglMnlBDUuc0LZWzUa8whdYXfkOxXckdkGC\ngk32PLeb1D9Uf5V8nQaCg0Fdgqqt6E2QjUOdL/cTAoGAHryXy2QRDHACVvOFt8qE\nMWM/ThxK9dj8UsflW6/P/+S5e5UE6Z7RmsyF3qH5T8lKpAXyBTu6eihioQ1nqPAr\n6RYOpTxWMr6i4n1i+dXieH5QDHV9AofYYEzyd+cCyXsbDcPk72idvNQaRVPtKrTZ\naqc0O/odu3Hu05Xl/C/2eYg=\n-----END PRIVATE KEY-----\n",
+  "client_email": "streamlit@weatherdashboard-451702.iam.gserviceaccount.com",
+  "client_id": "116816624603567048527",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/streamlit%40weatherdashboard-451702.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
 }
 
 # 🔹 Crear credenciales y conectar con Google Sheets
