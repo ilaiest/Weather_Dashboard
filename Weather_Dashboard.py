@@ -14,7 +14,7 @@ SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 
 # 🔹 Cargar credenciales desde `st.secrets`
 try:
-    creds_dict = st.secrets["gcp_service_account"]  # Se obtiene de secrets.toml en Streamlit Cloud
+    creds_dict = st.secrets["gcp_service_account"]
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
     client = gspread.authorize(creds)
     spreadsheet = client.open("Weather_Dashboard")
@@ -80,7 +80,6 @@ def fetch_city_forecast(city):
 
 # 🔹 Sidebar: Filtros y Navegación
 st.sidebar.markdown("## 🌎 **Weather Navigation**", unsafe_allow_html=True)
-st.sidebar.markdown("<h4 style='font-size: 22px;'>Select a View:</h4>", unsafe_allow_html=True)
 page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], label_visibility="collapsed")
 
 # 📅 Filtros
