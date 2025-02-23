@@ -5,28 +5,18 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.express as px
 
-# 🚀 **Debe ser la primera línea de Streamlit**
 st.set_page_config(page_title="Weather Dashboard", layout="wide")
 
-# 🔹 **Configuración de Google Sheets**
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# 🔹 **Cargar credenciales desde st.secrets**
 try:
     creds_dict = st.secrets["gcp_service_account"]
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
     client = gspread.authorize(creds)
     spreadsheet = client.open("Weather_Dashboard")
-    st.success("✅ Conexión exitosa con Google Sheets.")
 except Exception as e:
     st.error(f"❌ Error al autenticar con Google Sheets: {e}")
     st.stop()
-
-# 🔹 **Diccionario de Iconos de Clima**
-weather_icons = {
-    "Clear": "☀️", "Clouds": "☁️", "Drizzle": "🌦️", "Rain": "🌧️",
-    "Thunderstorm": "⛈️", "Snow": "❄️", "Mist": "🌫️", "Fog": "🌫️", "Haze": "🌁"
-}
 
 # 🔹 **Función para Cargar Datos de Google Sheets**
 @st.cache_data
@@ -53,17 +43,42 @@ def load_google_sheets():
         st.error(f"Error loading Google Sheets data: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
-# 🔹 **Función para obtener datos de clima filtrados**
+# 🔹 **Diccionario de Iconos de Clima**
+weather_icons = {
+    "clear sky": "☀️",
+    "few clouds": "🌤️",
+    "scattered clouds": "⛅",
+    "broken clouds": "☁️",
+    "overcast clouds": "🌥️",
+    "drizzle": "🌦️",
+    "light rain": "🌦️",
+    "moderate rain": "🌧️",
+    "heavy rain": "🌧️",
+    "thunderstorm": "⛈️",
+    "snow": "❄️",
+    "mist": "🌫️",
+    "fog": "🌫️",
+    "haze": "🌁",
+    "smoke": "🌫️",
+    "dust": "💨",
+    "sand": "💨",
+    "volcanic ash": "🌋",
+    "squalls": "🌬️",
+    "tornado": "🌪️"
+}
+
+
+# 🔹 **Función para obtener datos de clima filtrados
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
     weather_df, team_df = load_google_sheets()
-    
+
     # Filtrar por fecha
     weather_df = weather_df[weather_df["date"] == selected_date]
 
     # Merge con team_df para agregar cluster y team
     if not team_df.empty:
         weather_df = weather_df.merge(team_df, on="city", how="left")
-    
+
     # ✅ Reemplazar valores NaN en 'cluster' con "Unknown"
     weather_df["cluster"] = weather_df["cluster"].fillna("Unknown")
 
@@ -80,8 +95,9 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
             weather_df = weather_df[weather_df["cluster"] == selected_cluster]
         else:
             st.warning(f"No hay datos para el cluster '{selected_cluster}'. Mostrando todos los datos.")
-    
+
     return weather_df
+
 
 # 🚀 **Sidebar: Selección de Vista**
 st.sidebar.markdown("## 🌎 **Weather Navigation**", unsafe_allow_html=True)
@@ -90,7 +106,8 @@ page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], la
 # 📅 **Filtros**
 selected_date = st.sidebar.date_input("📅 Select Date", datetime.today().date())
 selected_team = st.sidebar.selectbox("🏢 Select Team", ["All", "MX", "POC", "CASA"])
-selected_cluster = st.sidebar.selectbox("📍 Select Cluster", ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
+selected_cluster = st.sidebar.selectbox("📍 Select Cluster",
+                                        ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
 
 # 🌍 **City Overview**
 if page == "🌍 City Overview":
@@ -101,15 +118,19 @@ if page == "🌍 City Overview":
     if not weather_df.empty:
         cols = st.columns(3)  # 3 ciudades por fila
         for idx, row in weather_df.iterrows():
-            weather_icon = weather_icons.get(row['main_condition'], "🌎")
+            weather_icon = weather_icons.get(row['weather condition'], "🌎")
             with cols[idx % 3]:
-                st.markdown(f"""
-                    <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
-                        <h3>{weather_icon} {row['city']}</h3>
-                        <p>🌡️ Temperature: {row['temp']}°C | Feels Like: {row['feels_like']}°C</p>
-                        <p>🌬️ Wind Speed: {row['wind_speed']} km/h</p>
-                        <p>💧 Humidity: {row['humidity']}%</p>
-                    </div>
-                """, unsafe_allow_html=True)
-    else:
-        st.warning("No weather data available for the selected filters.")
+                st.markdown(
+                    f"""
+                                <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; margin-bottom: 10px;">
+                                    <h3>{weather_icon} {row['city']}</h3>
+                                    <p>🌡️ Temperature: {row['temp']}°C | Feels Like: {row['feels_like']}°C</p>
+                                    <p>🌬️ Wind Speed: {row['wind_speed']} km/h</p>
+                                    <p>💧 Humidity: {row['humidity']}%</p>
+                                    <p>🌧️ Rain Probability: {row['rain_probability']}</p>
+                                    <p>⏳ Rain Hours: {row['rain_hours'] if row['rain_hours'] else 'No Rain Expected'}</p>
+                                </div>
+                                """, unsafe_allow_html=True
+                )
+        else:
+             st.warning("No weather data available for the selected filters.")
