@@ -10,9 +10,9 @@ import plotly.express as px
 # 🔹 Configuración de Google Sheets
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# 🔹 Cargar credenciales desde Streamlit Secrets
+# 🔹 Cargar credenciales desde Streamlit Secrets con el nuevo nombre
 try:
-    creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])  # Leer credenciales desde secrets
+    creds_dict = st.secrets["gcp_service_account"]  # Cambiado de "GOOGLE_CREDENTIALS" a "gcp_service_account"
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
     client = gspread.authorize(creds)
     spreadsheet = client.open("Weather_Dashboard")
