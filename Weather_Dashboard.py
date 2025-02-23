@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 import json
-import os
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.express as px
@@ -10,12 +9,28 @@ import plotly.express as px
 # 🔹 Configuración de Google Sheets
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# 🔹 Cargar credenciales desde Streamlit Secrets con el nuevo nombre
+# 🔹 NUEVO Service Account (Copiar los datos desde el JSON)
+GOOGLE_CREDENTIALS = {
+    "type": "service_account",
+    "project_id": "weatherdashboard-451702",
+    "private_key_id": "XXXXXXXXXXXXX",
+    "private_key": "-----BEGIN PRIVATE KEY-----\nXXXXX\n-----END PRIVATE KEY-----\n",
+    "client_email": "weather-dashboard-service@weatherdashboard-451702.iam.gserviceaccount.com",
+    "client_id": "XXXXXXXXXXXX",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/weather-dashboard-service%40weatherdashboard-451702.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
+}
+
+# 🔹 Crear credenciales y conectar con Google Sheets
 try:
-    creds_dict = st.secrets["gcp_service_account"]  # Cambiado de "GOOGLE_CREDENTIALS" a "gcp_service_account"
-    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+    creds = Credentials.from_service_account_info(GOOGLE_CREDENTIALS, scopes=SCOPE)
     client = gspread.authorize(creds)
     spreadsheet = client.open("Weather_Dashboard")
+    st.success("✅ Conexión exitosa con Google Sheets usando el nuevo Service Account.")
+
 except Exception as e:
     st.error(f"❌ Error al autenticar con Google Sheets: {e}")
     st.stop()
