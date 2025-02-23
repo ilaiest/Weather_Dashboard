@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import gspread
-import json
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 import plotly.express as px
@@ -9,10 +8,10 @@ import plotly.express as px
 # 🚀 **Debe ser la primera línea de Streamlit**
 st.set_page_config(page_title="Weather Dashboard", layout="wide")
 
-# 🔹 Configuración de Google Sheets
+# 🔹 **Configuración de Google Sheets**
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# 🔹 Cargar credenciales desde `st.secrets`
+# 🔹 **Cargar credenciales desde `st.secrets`**
 try:
     creds_dict = st.secrets["gcp_service_account"]
     creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
@@ -23,7 +22,13 @@ except Exception as e:
     st.error(f"❌ Error al autenticar con Google Sheets: {e}")
     st.stop()
 
-# 🔹 Función para Cargar Datos de Google Sheets
+# 🔹 **Diccionario de Iconos de Clima**
+weather_icons = {
+    "Clear": "☀️", "Clouds": "☁️", "Drizzle": "🌦️", "Rain": "🌧️",
+    "Thunderstorm": "⛈️", "Snow": "❄️", "Mist": "🌫️", "Fog": "🌫️", "Haze": "🌁"
+}
+
+# 🔹 **Función para Cargar Datos de Google Sheets**
 @st.cache_data
 def load_google_sheets():
     """Carga todos los datos desde Google Sheets para optimización."""
@@ -34,7 +39,7 @@ def load_google_sheets():
 
         # Convertir tipos de datos
         weather_df["date"] = pd.to_datetime(weather_df["date"]).dt.date
-        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity"]
+        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity", "rain_probability", "rain_hours"]
         for col in numeric_cols:
             weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
 
@@ -48,7 +53,7 @@ def load_google_sheets():
         st.error(f"Error loading Google Sheets data: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
-# 🔹 Función para obtener datos de clima filtrados
+# 🔹 **Función para obtener datos de clima filtrados**
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
     weather_df, team_df = load_google_sheets()
     
@@ -59,17 +64,13 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
     if not team_df.empty:
         weather_df = weather_df.merge(team_df, on="city", how="left")
     
-    # ✅ Mostrar columnas después del merge para depuración
+    # ✅ Depuración: Mostrar columnas después del merge
     st.write("Columnas después del merge:", weather_df.columns.tolist())
-
-    # ✅ Mostrar valores únicos de 'cluster' para verificar formato
-    if "cluster" in weather_df.columns:
-        st.write("Valores únicos de 'cluster' después del merge:", weather_df["cluster"].unique())
 
     # ✅ Reemplazar valores NaN en 'cluster' con "Unknown"
     weather_df["cluster"] = weather_df["cluster"].fillna("Unknown")
 
-    # ✅ Convertir a string y eliminar espacios en blanco para evitar errores de comparación
+    # ✅ Convertir a string y eliminar espacios en blanco
     weather_df["cluster"] = weather_df["cluster"].astype(str).str.strip()
     selected_cluster = selected_cluster.strip()
 
@@ -85,11 +86,11 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
     
     return weather_df
 
-# 🚀 Sidebar: View Selection
+# 🚀 **Sidebar: Selección de Vista**
 st.sidebar.markdown("## 🌎 **Weather Navigation**", unsafe_allow_html=True)
 page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], label_visibility="collapsed")
 
-# 📅 Filtros
+# 📅 **Filtros**
 selected_date = st.sidebar.date_input("📅 Select Date", datetime.today()).strftime("%Y-%m-%d")
 selected_team = st.sidebar.selectbox("🏢 Select Team", ["All", "MX", "POC", "CASA"])
 selected_cluster = st.sidebar.selectbox("📍 Select Cluster", ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
@@ -101,11 +102,11 @@ if page == "🌍 City Overview":
     weather_df = fetch_weather_data(selected_date, selected_team, selected_cluster)
 
     if not weather_df.empty:
-        st.write("Vista previa de datos filtrados:", weather_df.head())  # ✅ Mostrar datos después del filtro
+        st.write("Vista previa de datos filtrados:", weather_df.head())  # ✅ Depuración
 
         cols = st.columns(3)  # 3 ciudades por fila
         for idx, row in weather_df.iterrows():
-            weather_icon = "🌎"
+            weather_icon = weather_icons.get(row['main_condition'], "🌎")
             with cols[idx % 3]:
                 st.markdown(f"""
                     <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
