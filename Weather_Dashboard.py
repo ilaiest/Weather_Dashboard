@@ -28,6 +28,7 @@ except Exception as e:
     st.error(f"❌ Error al autenticar con Google Sheets: {e}")
     st.stop()
 
+
 # 🔹 **Función para Cargar Datos de Google Sheets**
 @st.cache_data
 def load_google_sheets():
@@ -52,6 +53,8 @@ def load_google_sheets():
     except Exception as e:
         st.error(f"Error loading Google Sheets data: {e}")
         return pd.DataFrame(), pd.DataFrame()
+
+
 # 🔹 **Función para obtener datos de clima filtrados**
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
     weather_df, team_df = load_google_sheets()
@@ -66,7 +69,7 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
 
     if "cluster" in weather_df.columns:
         weather_df["cluster"] = weather_df["cluster"].fillna("Unknown").astype(str).str.strip()
-    
+
     selected_cluster = selected_cluster.strip()
 
     if "team" in weather_df.columns and selected_team != "All":
@@ -79,6 +82,7 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
             st.warning(f"No hay datos para el cluster '{selected_cluster}'. Mostrando todos los datos.")
 
     return weather_df
+
 
 # 🔹 **Función para obtener el pronóstico de una ciudad en los próximos días**
 def fetch_city_forecast(selected_city):
@@ -95,6 +99,7 @@ def fetch_city_forecast(selected_city):
 
     return forecast_df
 
+
 # 🚀 **Sidebar: Selección de Vista**
 st.sidebar.markdown("## 🌎 **Weather Navigation**", unsafe_allow_html=True)
 page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], label_visibility="collapsed")
@@ -102,7 +107,8 @@ page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], la
 # 📅 **Filtros**
 selected_date = st.sidebar.date_input("📅 Select Date", datetime.today().date())
 selected_team = st.sidebar.selectbox("🏢 Select Team", ["All", "MX", "POC", "CASA"])
-selected_cluster = st.sidebar.selectbox("📍 Select Cluster", ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
+selected_cluster = st.sidebar.selectbox("📍 Select Cluster",
+                                        ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
 
 # 🌍 **City Overview**
 if page == "🌍 City Overview":
@@ -142,13 +148,11 @@ elif page == "📊 Detailed Forecast":
         city_forecast_df = fetch_city_forecast(selected_city)
 
         if not city_forecast_df.empty:
-              today_weather = city_forecast_df.iloc[0]
-            normalized_condition = today_weather[
-                "weather_condition"].strip().lower()  # ✅ Convertimos a minúsculas y eliminamos espacios
-            weather_icon = weather_icons.get(normalized_condition, "🌎")  # 🔹 Usa ícono si existe, si no, pone 🌎
+            today_weather = city_forecast_df.iloc[0]
+        weather_icon = weather_icons.get( ['weather_condition'], "🌎")
 
-                        # Tarjeta de clima principal
-            st.markdown(f"""
+        # Tarjeta de clima principal
+        st.markdown(f"""
                 <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; text-align: center;">
                     <h2 style="color: #00AEEF;">{selected_city} - {today_weather['date']}</h2>
                     <h1 style="font-size: 60px;">{weather_icon} {today_weather['temp']}°C</h1>
@@ -159,17 +163,17 @@ elif page == "📊 Detailed Forecast":
                 </div>
             """, unsafe_allow_html=True)
 
-            # 📅 Forecast de los próximos días (Ajustado para mayor tamaño)
-            st.markdown("<h3 style='color:#00AEEF; text-align: center;'>🌤️ 4-Day Weather Forecast</h3>",
-                        unsafe_allow_html=True)
+        # 📅 Forecast de los próximos días (Ajustado para mayor tamaño)
+        st.markdown("<h3 style='color:#00AEEF; text-align: center;'>🌤️ 4-Day Weather Forecast</h3>",
+                    unsafe_allow_html=True)
 
-            forecast_cols = st.columns(len(city_forecast_df))  # Crear columnas dinámicas
+        forecast_cols = st.columns(len(city_forecast_df))  # Crear columnas dinámicas
 
-            for idx, row in city_forecast_df.iterrows():
-                forecast_icon = weather_icons.get(row["weather_condition"],
-                                                  "🌎")  # Obtener icono basado en la condición climática
-                with forecast_cols[idx]:  # Ubicar en la columna correspondiente
-                    st.markdown(f"""
+        for idx, row in city_forecast_df.iterrows():
+            forecast_icon = weather_icons.get(row["weather_condition"],
+                                              "🌎")  # Obtener icono basado en la condición climática
+            with forecast_cols[idx]:  # Ubicar en la columna correspondiente
+                st.markdown(f"""
                 <div style="border-radius: 10px; padding: 20px; background-color: #2E2E2E; color: white; text-align: center;
                             width: 150px; height: 160px; margin-left: 50px;">
                     <h4 style="margin: 0; font-size: 20px; margin-bottom: -10px;">{row['date'].strftime('%a')}</h4>
@@ -179,8 +183,6 @@ elif page == "📊 Detailed Forecast":
 
                     """, unsafe_allow_html=True)
 
-
-            
-            st.markdown("### 📈 Temperature Trends")
-            fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"], markers=True)
-            st.plotly_chart(fig_temp, use_container_width=True)
+        st.markdown("### 📈 Temperature Trends")
+        fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"], markers=True)
+        st.plotly_chart(fig_temp, use_container_width=True)
