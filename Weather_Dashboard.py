@@ -39,7 +39,7 @@ def load_google_sheets():
             return pd.DataFrame(), pd.DataFrame()
 
         weather_df = pd.DataFrame(data[1:], columns=data[0])
-        weather_df["date"] = pd.to_datetime(weather_df["date"]).dt.date
+        weather_df["date"] = pd.to_datetime(weather_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
         numeric_cols = ["temp", "feels_like", "wind_speed", "humidity", "rain_probability", "rain_hours"]
         for col in numeric_cols:
             weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
@@ -52,7 +52,6 @@ def load_google_sheets():
     except Exception as e:
         st.error(f"Error loading Google Sheets data: {e}")
         return pd.DataFrame(), pd.DataFrame()
-
 # 🔹 **Función para obtener datos de clima filtrados**
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
     weather_df, team_df = load_google_sheets()
@@ -89,7 +88,7 @@ def fetch_city_forecast(selected_city):
         return pd.DataFrame()
 
     forecast_df = weather_df[weather_df["city"] == selected_city].copy()
-    forecast_df["date"] = pd.to_datetime(forecast_df["date"])
+    forecast_df["date"] = pd.to_datetime(forecast_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
 
     today = datetime.today().date()
     forecast_df = forecast_df[forecast_df["date"] >= today].sort_values("date").head(5)
@@ -116,15 +115,13 @@ if page == "🌍 City Overview":
         for idx, row in weather_df.iterrows():
             weather_icon = weather_icons.get(row['main_condition'], "🌎")
             with cols[idx % len(cols)]:
-                st.markdown(
-                    f"""
-                    <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
-                        <h3>{weather_icon} {row['city']}</h3>
-                        <p>🌡️ {row['temp']}°C | Feels: {row['feels_like']}°C</p>
-                        <p>💧 Humidity: {row['humidity']}%</p>
-                    </div>
-                    """, unsafe_allow_html=True
-                )
+                st.markdown(f"""
+                <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white;">
+                    <h3>{weather_icon} {row['city']}</h3>
+                    <p>🌡️ {row['temp']}°C | Feels: {row['feels_like']}°C</p>
+                    <p>💧 Humidity: {row['humidity']}%</p>
+                </div>
+                """, unsafe_allow_html=True)
     else:
         st.warning("⚠️ No weather data available for the selected filters.")
 
@@ -140,13 +137,6 @@ elif page == "📊 Detailed Forecast":
         city_forecast_df = fetch_city_forecast(selected_city)
 
         if not city_forecast_df.empty:
-            st.markdown(f"### 📈 Temperature Trends")
+            st.markdown("### 📈 Temperature Trends")
             fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"], markers=True)
             st.plotly_chart(fig_temp, use_container_width=True)
-
-            st.markdown("### 🌧️ Rain Probability Trend")
-            fig_rain = px.bar(city_forecast_df, x="date", y="rain_probability", text="rain_probability")
-            st.plotly_chart(fig_rain, use_container_width=True)
-
-        else:
-            st.warning("⚠️ No forecast data available for this city.")
