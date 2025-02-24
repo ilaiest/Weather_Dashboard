@@ -149,7 +149,8 @@ elif page == "📊 Detailed Forecast":
 
         if not city_forecast_df.empty:
             today_weather = city_forecast_df.iloc[0]
-        weather_icon = weather_icons.get( ['weather_condition'], "🌎")
+            normalized_condition = today_weather["weather_condition"].strip().lower()
+            weather_icon = weather_icons.get(normalized_condition, "🌎")  
 
         # Tarjeta de clima principal
         st.markdown(f"""
