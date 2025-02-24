@@ -170,20 +170,24 @@ elif page == "📊 Detailed Forecast":
 
         forecast_cols = st.columns(len(city_forecast_df))  # Crear columnas dinámicas
 
-        for idx, row in city_forecast_df.iterrows():
-            forecast_icon = weather_icons.get(row["weather_condition"],
-                                              "🌎")  # Obtener icono basado en la condición climática
-            with forecast_cols[idx]:  # Ubicar en la columna correspondiente
-                st.markdown(f"""
-                <div style="border-radius: 10px; padding: 20px; background-color: #2E2E2E; color: white; text-align: center;
-                            width: 150px; height: 160px; margin-left: 50px;">
-                    <h4 style="margin: 0; font-size: 20px; margin-bottom: -10px;">{row['date'].strftime('%a')}</h4>
-                    <p style="font-size: 40px; margin: -10px 0;">{forecast_icon}</p>
-                    <h4 style="margin: 0; font-size: 18px; margin-top: -10px;">{row['temp']}°C</h4>
-                </div>
+        # 🔹 Corrección del Error IndexError
+        if not city_forecast_df.empty:  # ✅ Evita error si `city_forecast_df` está vacío
+            num_days = len(city_forecast_df)  # ✅ Número de días disponibles en el pronóstico
+            forecast_cols = st.columns(num_days)  # ✅ Crear columnas dinámicas según la cantidad de días
 
+            for idx, row in enumerate(
+                    city_forecast_df.itertuples()):  # ✅ `enumerate()` asegura que `idx` siempre esté en rango
+                forecast_icon = weather_icons.get(row.weather_condition.strip().lower(), "🌎")
+                with forecast_cols[idx]:  # ✅ Ahora `idx` no podrá exceder el número de columnas
+                    st.markdown(f"""
+                    <div style="border-radius: 10px; padding: 20px; background-color: #2E2E2E; color: white; text-align: center;
+                                width: 150px; height: 160px;">
+                        <h4 style="margin: 0; font-size: 20px; margin-bottom: -10px;">{row.date.strftime('%a')}</h4>
+                        <p style="font-size: 40px; margin: -10px 0;">{forecast_icon}</p>
+                        <h4 style="margin: 0; font-size: 18px; margin-top: -10px;">{row.temp}°C</h4>
+                    </div>
                     """, unsafe_allow_html=True)
+        else:
+            st.warning(
+                "⚠️ No hay datos de pronóstico disponibles para esta ciudad.")  # ✅ Mensaje de advertencia si no hay datos
 
-        st.markdown("### 📈 Temperature Trends")
-        fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"], markers=True)
-        st.plotly_chart(fig_temp, use_container_width=True)
