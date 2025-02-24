@@ -18,6 +18,31 @@ except Exception as e:
     st.error(f"❌ Error al autenticar con Google Sheets: {e}")
     st.stop()
 
+# 🔹 **Diccionario de Iconos de Clima**
+# Weather Icons Dictionary
+    weather_icon = {
+        "clear sky": "☀️",
+        "few clouds": "🌤️",
+        "scattered clouds": "⛅",
+        "broken clouds": "☁️",
+        "overcast clouds": "🌥️",
+        "drizzle": "🌦️",
+        "light rain": "🌦️",
+        "moderate rain": "🌧️",
+        "heavy rain": "🌧️",
+        "thunderstorm": "⛈️",
+        "snow": "❄️",
+        "mist": "🌫️",
+        "fog": "🌫️",
+        "haze": "🌁",
+        "smoke": "🌫️",
+        "dust": "💨",
+        "sand": "💨",
+        "volcanic ash": "🌋",
+        "squalls": "🌬️",
+        "tornado": "🌪️"
+    }
+
 # 🔹 **Función para Cargar Datos de Google Sheets**
 @st.cache_data
 def load_google_sheets():
@@ -43,30 +68,7 @@ def load_google_sheets():
         st.error(f"Error loading Google Sheets data: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
-# 🔹 **Diccionario de Iconos de Clima**
-# Weather Icons Dictionary
-    weather_icon = {
-        "clear sky": "☀️",
-        "few clouds": "🌤️",
-        "scattered clouds": "⛅",
-        "broken clouds": "☁️",
-        "overcast clouds": "🌥️",
-        "drizzle": "🌦️",
-        "light rain": "🌦️",
-        "moderate rain": "🌧️",
-        "heavy rain": "🌧️",
-        "thunderstorm": "⛈️",
-        "snow": "❄️",
-        "mist": "🌫️",
-        "fog": "🌫️",
-        "haze": "🌁",
-        "smoke": "🌫️",
-        "dust": "💨",
-        "sand": "💨",
-        "volcanic ash": "🌋",
-        "squalls": "🌬️",
-        "tornado": "🌪️"
-    }
+
 
 # 🔹 **Función para obtener datos de clima filtrados
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
