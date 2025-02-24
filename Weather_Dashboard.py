@@ -145,7 +145,7 @@ elif page == "📊 Detailed Forecast":
     selected_city = st.selectbox("🏙️ Choose a City", city_list)
 
     if selected_city != "Select a City":
-        city_forecast_df = fetch_city_forecast(selected_city)
+        city_forecast_df = fetch_city_forecast(selected_city, selected_date)
 
         if not city_forecast_df.empty:
             today_weather = city_forecast_df.iloc[0]
