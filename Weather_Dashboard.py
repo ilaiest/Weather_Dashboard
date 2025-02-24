@@ -29,7 +29,6 @@ except Exception as e:
     st.stop()
 
 
-# 🔹 **Función para Cargar Datos de Google Sheets**
 @st.cache_data
 def load_google_sheets():
     """Carga datos de Google Sheets con validaciones."""
@@ -41,11 +40,11 @@ def load_google_sheets():
 
         weather_df = pd.DataFrame(data[1:], columns=data[0])
         weather_df["date"] = pd.to_datetime(weather_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
-        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity", "rain_probability", "rain_hours"]
+        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity"]
         for col in numeric_cols:
             weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
 
-         # ✅ Convertir `rain_probability` eliminando el "%", convirtiéndolo a número
+        # ✅ Convertir `rain_probability` eliminando el "%", convirtiéndolo a número
         weather_df["rain_probability"] = weather_df["rain_probability"].str.replace("%", "", regex=False)
         weather_df["rain_probability"] = pd.to_numeric(weather_df["rain_probability"], errors="coerce")
 
