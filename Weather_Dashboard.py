@@ -61,7 +61,8 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
     weather_df, team_df = load_google_sheets()
 
     if weather_df.empty:
-        return pd.DataFrame()
+        st.warning("⚠️ No weather data available.")
+        return pd.DataFrame()  # ✅ Retorna DataFrame vacío para evitar `NameError`
 
     weather_df = weather_df[weather_df["date"] == selected_date]
 
@@ -83,6 +84,7 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
             st.warning(f"No hay datos para el cluster '{selected_cluster}'. Mostrando todos los datos.")
 
     return weather_df
+
 
 
 # 🔹 **Función para obtener el pronóstico de una ciudad en los próximos días**
