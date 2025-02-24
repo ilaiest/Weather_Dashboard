@@ -187,7 +187,20 @@ elif page == "📊 Detailed Forecast":
                         <h4 style="margin: 0; font-size: 18px; margin-top: -10px;">{row.temp}°C</h4>
                     </div>
                     """, unsafe_allow_html=True)
-        else:
-            st.warning(
-                "⚠️ No hay datos de pronóstico disponibles para esta ciudad.")  # ✅ Mensaje de advertencia si no hay datos
 
+            # 📈 Temperature Trend
+            st.markdown("### 📈 Temperature Trends")
+            fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"],
+                               labels={"value": "Temperature (°C)", "date": "Date"},
+                               title="🌡️ Temperature Over the Next Days", markers=True)
+            st.plotly_chart(fig_temp, use_container_width=True)
+
+            # 🌧️ Rain Probability Trend
+            st.markdown("### 🌧️ Rain Probability Trend")
+            fig_rain = px.bar(city_forecast_df, x="date", y="rain_probability",
+                              title="🌧️ Rain Probability Over the Next Days",
+                              labels={"rain_probability": "Rain Probability (%)"}, text="rain_probability")
+            st.plotly_chart(fig_rain, use_container_width=True)
+
+        else:
+            st.warning("No forecast data available for this city.")
