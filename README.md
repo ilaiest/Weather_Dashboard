@@ -9,6 +9,10 @@ The **Weather Dashboard** is a Streamlit web application designed for **Uber Dat
 - **📅 Date Selection**: View forecasts for **specific dates**.
 - **📈 Visual Trends**: Includes **interactive charts** for temperature and rain probability.
 
+
+![image](https://github.com/user-attachments/assets/9b8d163d-0b7b-4a36-8d62-e81b4fcd873f)
+
+
 ## 🛠️ Tech Stack
 - **Python** 🐍
 - **Streamlit** 🎈
