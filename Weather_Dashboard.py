@@ -35,22 +35,33 @@ def load_google_sheets():
     try:
         worksheet = spreadsheet.worksheet("Data")
         data = worksheet.get_all_values()
+
         if not data or len(data) < 2:  # ✅ Evitar DataFrame vacío si no hay datos
+            st.warning("⚠️ No data found in Google Sheets.")
             return pd.DataFrame(), pd.DataFrame()
 
         weather_df = pd.DataFrame(data[1:], columns=data[0])
         weather_df["date"] = pd.to_datetime(weather_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
+
         numeric_cols = ["temp", "feels_like", "wind_speed", "humidity"]
         for col in numeric_cols:
             weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
 
+        # ✅ Manejo de `rain_probability` y `rain_hours`
+        weather_df["rain_probability"] = weather_df["rain_probability"].str.replace("%", "", regex=False)
+        weather_df["rain_probability"] = pd.to_numeric(weather_df["rain_probability"], errors="coerce")
+
+        weather_df["rain_hours"] = weather_df["rain_hours"].apply(lambda x: x if pd.notna(x) and x.strip() else "No Rain Expected")
+
+        # ✅ Cargar datos de equipos y clusters
         team_worksheet = spreadsheet.worksheet("City_Team_Cluster")
         team_data = team_worksheet.get_all_values()
         team_df = pd.DataFrame(team_data[1:], columns=team_data[0]) if team_data else pd.DataFrame()
 
         return weather_df, team_df
+
     except Exception as e:
-        st.error(f"Error loading Google Sheets data: {e}")
+        st.error(f"❌ Error in load_google_sheets(): {e}")
         return pd.DataFrame(), pd.DataFrame()  # ✅ Evita `NameError` devolviendo DataFrames vacíos
 
 
@@ -58,32 +69,46 @@ def load_google_sheets():
 # 🔹 **Función para obtener datos de clima filtrados**
 @st.cache_data
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
-    weather_df, team_df = load_google_sheets()
+    try:
+        weather_df, team_df = load_google_sheets()
+        
+        # ✅ Si `weather_df` está vacío, retorna un DataFrame vacío en lugar de fallar
+        if weather_df.empty:
+            st.warning("⚠️ No weather data available.")
+            return pd.DataFrame()
+        
+        # ✅ Filtrar por fecha seleccionada
+        weather_df = weather_df[weather_df["date"] == selected_date]
 
-    if weather_df.empty:
-        st.warning("⚠️ No weather data available.")
-        return pd.DataFrame()  # ✅ Retorna DataFrame vacío para evitar `NameError`
+        # ✅ Verificar si hay datos después del filtro
+        if weather_df.empty:
+            st.warning(f"⚠️ No weather data found for {selected_date}.")
+            return pd.DataFrame()
 
-    weather_df = weather_df[weather_df["date"] == selected_date]
+        # ✅ Unir con los datos de equipos y clusters si existen
+        if not team_df.empty and "city" in weather_df.columns and "city" in team_df.columns:
+            weather_df = weather_df.merge(team_df, on="city", how="left")
 
-    if not team_df.empty and "city" in weather_df.columns and "city" in team_df.columns:
-        weather_df = weather_df.merge(team_df, on="city", how="left")
+        if "cluster" in weather_df.columns:
+            weather_df["cluster"] = weather_df["cluster"].fillna("Unknown").astype(str).str.strip()
 
-    if "cluster" in weather_df.columns:
-        weather_df["cluster"] = weather_df["cluster"].fillna("Unknown").astype(str).str.strip()
+        selected_cluster = selected_cluster.strip()
 
-    selected_cluster = selected_cluster.strip()
+        if "team" in weather_df.columns and selected_team != "All":
+            weather_df = weather_df[weather_df["team"] == selected_team]
 
-    if "team" in weather_df.columns and selected_team != "All":
-        weather_df = weather_df[weather_df["team"] == selected_team]
+        if "cluster" in weather_df.columns and selected_cluster != "All":
+            if selected_cluster in weather_df["cluster"].unique():
+                weather_df = weather_df[weather_df["cluster"] == selected_cluster]
+            else:
+                st.warning(f"No hay datos para el cluster '{selected_cluster}'. Mostrando todos los datos.")
 
-    if "cluster" in weather_df.columns and selected_cluster != "All":
-        if selected_cluster in weather_df["cluster"].unique():
-            weather_df = weather_df[weather_df["cluster"] == selected_cluster]
-        else:
-            st.warning(f"No hay datos para el cluster '{selected_cluster}'. Mostrando todos los datos.")
+        return weather_df
 
-    return weather_df
+    except Exception as e:
+        st.error(f"❌ Error in fetch_weather_data(): {e}")
+        return pd.DataFrame()  # ✅ Evita NameError si algo sale mal
+
 
 
 
@@ -158,8 +183,12 @@ elif page == "📊 Detailed Forecast":
     if selected_city != "Select a City":
         city_forecast_df = fetch_city_forecast(selected_city, selected_date)
 
-        if not city_forecast_df.empty:
-            today_weather = city_forecast_df.iloc[0]
+if city_forecast_df.empty:
+    st.warning(f"⚠️ No forecast data available for {selected_city} on {selected_date}.")
+    st.stop()  # ✅ Detiene la ejecución antes de que falle
+
+today_weather = city_forecast_df.iloc[0]  # ✅ Ahora siempre existirá
+
             normalized_condition = today_weather["weather_condition"].strip().lower()
             weather_icon = weather_icons.get(normalized_condition, "🌎")
 
