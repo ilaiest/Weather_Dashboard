@@ -85,7 +85,7 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
 
 
 # 🔹 **Función para obtener el pronóstico de una ciudad en los próximos días**
-def fetch_city_forecast(selected_city):
+def fetch_city_forecast(selected_city, selected_date):
     weather_df, _ = load_google_sheets()
 
     if weather_df.empty:
