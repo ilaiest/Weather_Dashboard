@@ -95,7 +95,7 @@ def fetch_city_forecast(selected_city):
     forecast_df["date"] = pd.to_datetime(forecast_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
 
     today = datetime.today().date()
-    forecast_df = forecast_df[forecast_df["date"] >= today].sort_values("date").head(5)
+    forecast_df = forecast_df[forecast_df["date"] >= selected_date].sort_values("date").head(4)
 
     return forecast_df
 
@@ -150,7 +150,7 @@ elif page == "📊 Detailed Forecast":
         if not city_forecast_df.empty:
             today_weather = city_forecast_df.iloc[0]
             normalized_condition = today_weather["weather_condition"].strip().lower()
-            weather_icon = weather_icons.get(normalized_condition, "🌎")  
+            weather_icon = weather_icons.get(normalized_condition, "🌎")
 
         # Tarjeta de clima principal
         st.markdown(f"""
