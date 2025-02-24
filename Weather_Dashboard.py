@@ -142,6 +142,45 @@ elif page == "📊 Detailed Forecast":
         city_forecast_df = fetch_city_forecast(selected_city)
 
         if not city_forecast_df.empty:
+              today_weather = city_forecast_df.iloc[0]
+            normalized_condition = today_weather[
+                "weather_condition"].strip().lower()  # ✅ Convertimos a minúsculas y eliminamos espacios
+            weather_icon = weather_icons.get(normalized_condition, "🌎")  # 🔹 Usa ícono si existe, si no, pone 🌎
+
+                        # Tarjeta de clima principal
+            st.markdown(f"""
+                <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; text-align: center;">
+                    <h2 style="color: #00AEEF;">{selected_city} - {today_weather['date']}</h2>
+                    <h1 style="font-size: 60px;">{weather_icon} {today_weather['temp']}°C</h1>
+                    <p style="font-size: 20px;">Feels Like: {today_weather['feels_like']}°C</p>
+                    <p style="font-size: 18px;">{today_weather['weather_condition']}</p>
+                    <p style="font-size: 18px;">🌬️ Wind Speed: {today_weather['wind_speed']} km/h | 💧 Humidity: {today_weather['humidity']}%</p>
+                    <p style="font-size: 18px;">🌧️ Rain Probability: {today_weather['rain_probability']} | ⏳ Rain Hours: {today_weather['rain_hours'] if today_weather['rain_hours'] else 'No Rain Expected'}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # 📅 Forecast de los próximos días (Ajustado para mayor tamaño)
+            st.markdown("<h3 style='color:#00AEEF; text-align: center;'>🌤️ 4-Day Weather Forecast</h3>",
+                        unsafe_allow_html=True)
+
+            forecast_cols = st.columns(len(city_forecast_df))  # Crear columnas dinámicas
+
+            for idx, row in city_forecast_df.iterrows():
+                forecast_icon = weather_icons.get(row["weather_condition"],
+                                                  "🌎")  # Obtener icono basado en la condición climática
+                with forecast_cols[idx]:  # Ubicar en la columna correspondiente
+                    st.markdown(f"""
+                <div style="border-radius: 10px; padding: 20px; background-color: #2E2E2E; color: white; text-align: center;
+                            width: 150px; height: 160px; margin-left: 50px;">
+                    <h4 style="margin: 0; font-size: 20px; margin-bottom: -10px;">{row['date'].strftime('%a')}</h4>
+                    <p style="font-size: 40px; margin: -10px 0;">{forecast_icon}</p>
+                    <h4 style="margin: 0; font-size: 18px; margin-top: -10px;">{row['temp']}°C</h4>
+                </div>
+
+                    """, unsafe_allow_html=True)
+
+
+            
             st.markdown("### 📈 Temperature Trends")
             fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"], markers=True)
             st.plotly_chart(fig_temp, use_container_width=True)
