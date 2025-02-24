@@ -165,7 +165,7 @@ elif page == "📊 Detailed Forecast":
             """, unsafe_allow_html=True)
 
         # 📅 Forecast de los próximos días (Ajustado para mayor tamaño)
-        st.markdown("<h3 style='color:#00AEEF; text-align: center;'>🌤️ 4-Day Weather Forecast</h3>",
+        st.markdown("<h3 style='color:#00AEEF; text-align: center;'>🌤️ Next Days Weather Forecast</h3>",
                     unsafe_allow_html=True)
 
         forecast_cols = st.columns(len(city_forecast_df))  # Crear columnas dinámicas
@@ -181,7 +181,7 @@ elif page == "📊 Detailed Forecast":
                 with forecast_cols[idx]:  # ✅ Ahora `idx` no podrá exceder el número de columnas
                     st.markdown(f"""
                     <div style="border-radius: 10px; padding: 20px; background-color: #2E2E2E; color: white; text-align: center;
-                                width: 150px; height: 160px;">
+                                width: 150px; height: 160px; margin-left: 50px;">
                         <h4 style="margin: 0; font-size: 20px; margin-bottom: -10px;">{row.date.strftime('%a')}</h4>
                         <p style="font-size: 40px; margin: -10px 0;">{forecast_icon}</p>
                         <h4 style="margin: 0; font-size: 18px; margin-top: -10px;">{row.temp}°C</h4>
