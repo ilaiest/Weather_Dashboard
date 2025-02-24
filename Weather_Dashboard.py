@@ -20,7 +20,7 @@ except Exception as e:
 
 # 🔹 **Diccionario de Iconos de Clima**
 # Weather Icons Dictionary
-    weather_icon = {
+    weather_icons = {
         "clear sky": "☀️",
         "few clouds": "🌤️",
         "scattered clouds": "⛅",
@@ -120,7 +120,7 @@ if page == "🌍 City Overview":
     if not weather_df.empty:
         cols = st.columns(3)  # 3 ciudades por fila
         for idx, row in weather_df.iterrows():
-            weather_icon = weather_icon.get(row['main_condition'], "🌎")
+            weather_icon = weather_icons.get(row['main_condition'], "🌎")
             with cols[idx % 3]:
                 st.markdown(
                     f"""
