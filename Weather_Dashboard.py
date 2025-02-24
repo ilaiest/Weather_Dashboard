@@ -32,7 +32,7 @@ except Exception as e:
 # 🔹 **Función para Cargar Datos de Google Sheets**
 @st.cache_data
 def load_google_sheets():
-    """Carga datos de Google Sheets con validaciones."""
+    """Carga datos de Google Sheets asegurando que `rain_probability` y `rain_hours` sean strings."""
     try:
         worksheet = spreadsheet.worksheet("Data")
         data = worksheet.get_all_values()
@@ -41,10 +41,17 @@ def load_google_sheets():
 
         weather_df = pd.DataFrame(data[1:], columns=data[0])
         weather_df["date"] = pd.to_datetime(weather_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
-        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity", "rain_probability", "rain_hours"]
-        for col in numeric_cols:
-            weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
 
+        # ✅ Mantener todas las columnas como texto (sin NaN)
+        weather_df = weather_df.fillna("").astype(str)
+
+        # ✅ Reemplazar valores "None" por "No Rain" en `rain_hours`
+        weather_df["rain_hours"] = weather_df["rain_hours"].replace("None", "No Rain").replace("", "No Rain")
+
+        # ✅ Reemplazar valores vacíos en `rain_probability`
+        weather_df["rain_probability"] = weather_df["rain_probability"].replace("", "No Data")
+
+        # Cargar equipo y clusters
         team_worksheet = spreadsheet.worksheet("City_Team_Cluster")
         team_data = team_worksheet.get_all_values()
         team_df = pd.DataFrame(team_data[1:], columns=team_data[0]) if team_data else pd.DataFrame()
