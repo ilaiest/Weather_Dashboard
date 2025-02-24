@@ -129,11 +129,11 @@ if not weather_df.empty:
     for idx, row in weather_df.iterrows():
         weather_icon = weather_icons.get(row['weather_condition'], "🌎")
 
-        # ✅ Asegurar que `rain_probability` mantenga el `%` y evitar `nan`
-        rain_prob = str(row["rain_probability"]) + "%" if pd.notna(row["rain_probability"]) and str(row["rain_probability"]).strip() != "nan" else "No Data"
+        # ✅ Asegurar que `rain_probability` mantenga el `%`
+        rain_prob = f"{row['rain_probability']}%" if pd.notna(row["rain_probability"]) else "No Data"
 
         # ✅ Manejar `rain_hours` para que no muestre `nan`
-        rain_hours = str(row["rain_hours"]) if pd.notna(row["rain_hours"]) and str(row["rain_hours"]).strip() and str(row["rain_hours"]).strip() != "nan" else "No Rain Expected"
+        rain_hours = row["rain_hours"] if pd.notna(row["rain_hours"]) and row["rain_hours"].strip() else "No Rain Expected"
 
         with cols[idx % len(cols)]:
             st.markdown(
