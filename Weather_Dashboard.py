@@ -45,6 +45,13 @@ def load_google_sheets():
         for col in numeric_cols:
             weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
 
+         # ✅ Convertir `rain_probability` eliminando el "%", convirtiéndolo a número
+        weather_df["rain_probability"] = weather_df["rain_probability"].str.replace("%", "", regex=False)
+        weather_df["rain_probability"] = pd.to_numeric(weather_df["rain_probability"], errors="coerce")
+
+        # ✅ Manejo de `rain_hours` para evitar `None`
+        weather_df["rain_hours"] = weather_df["rain_hours"].apply(lambda x: x if pd.notna(x) and x.strip() else "No Rain Expected")
+
         team_worksheet = spreadsheet.worksheet("City_Team_Cluster")
         team_data = team_worksheet.get_all_values()
         team_df = pd.DataFrame(team_data[1:], columns=team_data[0]) if team_data else pd.DataFrame()
