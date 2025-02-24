@@ -128,6 +128,8 @@ if page == "🌍 City Overview":
         cols = st.columns(min(3, len(weather_df)))
         for idx, row in weather_df.iterrows():
             weather_icon = weather_icons.get(row['weather_condition'], "🌎")
+            rain_prob = row["rain_probability"] if pd.notna(row["rain_probability"]) else "No Data"
+            rain_hours = row["rain_hours"] if pd.notna(row["rain_hours"]) and row["rain_hours"].strip() else "No Rain Expected"
             with cols[idx % len(cols)]:
                 st.markdown(
                     f"""
