@@ -13,6 +13,10 @@ The **Weather Dashboard** is a Streamlit web application designed for **Uber Dat
 ![image](https://github.com/user-attachments/assets/9b8d163d-0b7b-4a36-8d62-e81b4fcd873f)
 
 
+![image](https://github.com/user-attachments/assets/099f441b-f811-468d-b3b1-533ea7d147b0)
+
+
+
 ## 🛠️ Tech Stack
 - **Python** 🐍
 - **Streamlit** 🎈
