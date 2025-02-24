@@ -56,6 +56,7 @@ def load_google_sheets():
 
 
 # 🔹 **Función para obtener datos de clima filtrados**
+@st.cache_data
 def fetch_weather_data(selected_date, selected_team, selected_cluster):
     weather_df, team_df = load_google_sheets()
 
@@ -85,6 +86,7 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
 
 
 # 🔹 **Función para obtener el pronóstico de una ciudad en los próximos días**
+@st.cache_data
 def fetch_city_forecast(selected_city, selected_date):
     weather_df, _ = load_google_sheets()
 
