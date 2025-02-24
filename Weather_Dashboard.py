@@ -189,7 +189,7 @@ elif page == "📊 Detailed Forecast":
                 with forecast_cols[idx]:  # ✅ Ahora `idx` no podrá exceder el número de columnas
                     st.markdown(f"""
                     <div style="border-radius: 10px; padding: 20px; background-color: #2E2E2E; color: white; text-align: center;
-                                width: 150px; height: 160px; margin-left: 100px;">
+                                width: 150px; height: 160px; margin-left: auto;">
                         <h4 style="margin: 0; font-size: 20px; margin-bottom: -10px;">{row.date.strftime('%a')}</h4>
                         <p style="font-size: 40px; margin: -10px 0;">{forecast_icon}</p>
                         <h4 style="margin: 0; font-size: 18px; margin-top: -10px;">{row.temp}°C</h4>
