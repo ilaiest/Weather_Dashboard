@@ -42,14 +42,14 @@ def load_google_sheets():
         weather_df = pd.DataFrame(data[1:], columns=data[0])
         weather_df["date"] = pd.to_datetime(weather_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
 
-        # ✅ Mantener todas las columnas como texto (sin NaN)
-        weather_df = weather_df.fillna("").astype(str)
+        # ✅ Convertir solo columnas numéricas a `float`
+        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity"]
+        for col in numeric_cols:
+            weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
 
-        # ✅ Reemplazar valores "None" por "No Rain" en `rain_hours`
-        weather_df["rain_hours"] = weather_df["rain_hours"].replace("None", "No Rain").replace("", "No Rain")
-
-        # ✅ Reemplazar valores vacíos en `rain_probability`
-        weather_df["rain_probability"] = weather_df["rain_probability"].replace("", "No Data")
+        # ✅ Mantener `rain_probability` y `rain_hours` como `string`
+        weather_df["rain_probability"] = weather_df["rain_probability"].astype(str).replace("", "No Data")
+        weather_df["rain_hours"] = weather_df["rain_hours"].astype(str).replace("None", "No Rain").replace("", "No Rain")
 
         # Cargar equipo y clusters
         team_worksheet = spreadsheet.worksheet("City_Team_Cluster")
@@ -60,6 +60,7 @@ def load_google_sheets():
     except Exception as e:
         st.error(f"Error loading Google Sheets data: {e}")
         return pd.DataFrame(), pd.DataFrame()
+
 
 
 # 🔹 **Función para obtener datos de clima filtrados**
