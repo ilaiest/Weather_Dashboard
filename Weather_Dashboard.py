@@ -126,22 +126,26 @@ if page == "🌍 City Overview":
     weather_df = fetch_weather_data(selected_date, selected_team, selected_cluster)
 
     if not weather_df.empty:
-        # Convertir `rain_probability` a numérico (eliminando el `%` para ordenarlo)
+        # Convertir `rain_probability` a numérico para ordenar correctamente
         weather_df["rain_probability_numeric"] = pd.to_numeric(
             weather_df["rain_probability"].str.replace("%", "", regex=True), errors="coerce"
         ).fillna(0)
 
-        # Ordenar por `rain_probability_numeric` en orden descendente
+        # Ordenar de mayor a menor según `rain_probability_numeric`
         weather_df = weather_df.sort_values(by="rain_probability_numeric", ascending=False)
 
-        # Volver a formatear `rain_probability` con `%` para mostrarlo correctamente
+        # Volver a formatear `rain_probability` con `%` para la visualización
         weather_df["rain_probability"] = weather_df["rain_probability_numeric"].astype(int).astype(str) + "%"
 
-        # Generar las tarjetas de clima
-        cols = st.columns(min(3, len(weather_df)))
-        for idx, row in weather_df.iterrows():
-            weather_icon = weather_icons.get(row['weather_condition'], "🌎")
-            with cols[idx % len(cols)]:
+        # Definir el número de columnas dinámicamente para evitar saltos
+        num_columns = min(3, len(weather_df))
+        columns = st.columns(num_columns)
+
+        # Distribuir tarjetas sin saltos
+        for i, row in enumerate(weather_df.itertuples()):
+            col = columns[i % num_columns]  # Asegura que las tarjetas llenen bien las columnas
+            with col:
+                weather_icon = weather_icons.get(row.weather_condition, "🌎")
                 st.markdown(
                     f"""
                     <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; margin-bottom: 10px;">
