@@ -122,9 +122,22 @@ selected_cluster = st.sidebar.selectbox("📍 Select Cluster",
 if page == "🌍 City Overview":
     st.markdown(f"## 🌍 Weather Overview for {selected_date}")
 
+    # Aplicar los filtros existentes
     weather_df = fetch_weather_data(selected_date, selected_team, selected_cluster)
 
     if not weather_df.empty:
+        # Convertir `rain_probability` a numérico (eliminando el `%` para ordenarlo)
+        weather_df["rain_probability_numeric"] = pd.to_numeric(
+            weather_df["rain_probability"].str.replace("%", "", regex=True), errors="coerce"
+        ).fillna(0)
+
+        # Ordenar por `rain_probability_numeric` en orden descendente
+        weather_df = weather_df.sort_values(by="rain_probability_numeric", ascending=False)
+
+        # Volver a formatear `rain_probability` con `%` para mostrarlo correctamente
+        weather_df["rain_probability"] = weather_df["rain_probability_numeric"].astype(int).astype(str) + "%"
+
+        # Generar las tarjetas de clima
         cols = st.columns(min(3, len(weather_df)))
         for idx, row in weather_df.iterrows():
             weather_icon = weather_icons.get(row['weather_condition'], "🌎")
