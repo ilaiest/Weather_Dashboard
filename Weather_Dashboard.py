@@ -64,7 +64,7 @@ def load_google_sheets():
 
 
 # 🔹 **Función para obtener datos de clima filtrados**
-def fetch_weather_data(selected_date, selected_team, selected_cluster):
+def fetch_weather_data(selected_date, selected_country, selected_team, selected_cluster):
     weather_df, team_df = load_google_sheets()
 
     if weather_df.empty:
@@ -75,14 +75,15 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
     if not team_df.empty and "city" in weather_df.columns and "city" in team_df.columns:
         weather_df = weather_df.merge(team_df, on="city", how="left")
 
-    if "cluster" in weather_df.columns:
-        weather_df["cluster"] = weather_df["cluster"].fillna("Unknown").astype(str).str.strip()
+    # Filtrar por país si se seleccionó un país específico
+    if "country_code" in weather_df.columns and selected_country != "All":
+        weather_df = weather_df[weather_df["country_code"] == selected_country]
 
-    selected_cluster = selected_cluster.strip()
-
+    # Filtrar por equipo (team)
     if "team" in weather_df.columns and selected_team != "All":
         weather_df = weather_df[weather_df["team"] == selected_team]
 
+    # Filtrar por cluster
     if "cluster" in weather_df.columns and selected_cluster != "All":
         if selected_cluster in weather_df["cluster"].unique():
             weather_df = weather_df[weather_df["cluster"] == selected_cluster]
@@ -94,18 +95,22 @@ def fetch_weather_data(selected_date, selected_team, selected_cluster):
 
 # 🔹 **Función para obtener el pronóstico de una ciudad en los próximos días**
 def fetch_city_forecast(selected_city, selected_date):
-    weather_df, _ = load_google_sheets()
+    weather_df, team_df = load_google_sheets()
 
     if weather_df.empty:
         return pd.DataFrame()
 
     forecast_df = weather_df[weather_df["city"] == selected_city].copy()
-    forecast_df["date"] = pd.to_datetime(forecast_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
 
-    today = datetime.today().date()
+    # Agregar el filtro de país
+    if "country_code" in forecast_df.columns and selected_country != "All":
+        forecast_df = forecast_df[forecast_df["country_code"] == selected_country]
+
+    forecast_df["date"] = pd.to_datetime(forecast_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
     forecast_df = forecast_df[forecast_df["date"] >= selected_date].sort_values("date").head(5)
 
     return forecast_df
+
 
 
 # 🚀 **Sidebar: Selección de Vista**
@@ -114,6 +119,7 @@ page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], la
 
 # 📅 **Filtros**
 selected_date = st.sidebar.date_input("📅 Select Date", datetime.today().date())
+selected_country = st.sidebar.selectbox("🌎 Select Country", ["All", "MX", "CL", "AR", "CO", "CR", "DO", "EC"])
 selected_team = st.sidebar.selectbox("🏢 Select Team", ["All", "MX", "POC", "CASA"])
 selected_cluster = st.sidebar.selectbox("📍 Select Cluster",
                                         ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
