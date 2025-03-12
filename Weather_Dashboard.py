@@ -94,7 +94,7 @@ def fetch_weather_data(selected_date, selected_country, selected_team, selected_
 
 
 # 🔹 **Función para obtener el pronóstico de una ciudad en los próximos días**
-def fetch_city_forecast(selected_city, selected_date):
+def fetch_city_forecast(selected_city, selected_date, selected_country):
     weather_df, team_df = load_google_sheets()
 
     if weather_df.empty:
@@ -102,7 +102,7 @@ def fetch_city_forecast(selected_city, selected_date):
 
     forecast_df = weather_df[weather_df["city"] == selected_city].copy()
 
-    # Agregar el filtro de país
+    # Filtrar por país si se seleccionó un país específico
     if "country_code" in forecast_df.columns and selected_country != "All":
         forecast_df = forecast_df[forecast_df["country_code"] == selected_country]
 
@@ -110,6 +110,7 @@ def fetch_city_forecast(selected_city, selected_date):
     forecast_df = forecast_df[forecast_df["date"] >= selected_date].sort_values("date").head(5)
 
     return forecast_df
+
 
 
 
@@ -129,7 +130,7 @@ if page == "🌍 City Overview":
     st.markdown(f"## 🌍 Weather Overview for {selected_date}")
 
     # Aplicar los filtros existentes
-    weather_df = fetch_weather_data(selected_date, selected_team, selected_cluster)
+    weather_df = fetch_weather_data(selected_date, selected_country, selected_team, selected_cluster)
 
     if not weather_df.empty:
         # Convertir `rain_probability` a numérico para ordenar correctamente
@@ -176,7 +177,7 @@ elif page == "📊 Detailed Forecast":
     selected_city = st.selectbox("🏙️ Choose a City", city_list)
 
     if selected_city != "Select a City":
-        city_forecast_df = fetch_city_forecast(selected_city, selected_date)
+        city_forecast_df = fetch_city_forecast(selected_city, selected_date, selected_country)
 
         if not city_forecast_df.empty:
             today_weather = city_forecast_df.iloc[0]
