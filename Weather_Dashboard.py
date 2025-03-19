@@ -172,7 +172,9 @@ if page == "🌍 City Overview":
 elif page == "📊 Detailed Forecast":
     st.markdown("## 📊 5-Day Forecast")
 
-    available_cities = fetch_weather_data(selected_date, selected_team, selected_cluster)["city"].unique().tolist()
+    available_cities_df = fetch_weather_data(selected_date, selected_country, selected_team, selected_cluster)
+    available_cities = available_cities_df["city"].unique().tolist() if not available_cities_df.empty else []
+
     city_list = ["Select a City"] + available_cities
     selected_city = st.selectbox("🏙️ Choose a City", city_list)
 
