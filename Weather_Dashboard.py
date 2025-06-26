@@ -4,19 +4,15 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots # ⭐ NUEVA IMPORTACIÓN para el doble eje Y
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(page_title="Weather Operations Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
 # --- 2. WEATHER ICONS & SESSION STATE ---
 weather_icons = {
-    # Main Conditions
     "clouds": "☁️", "rain": "🌧️", "clear": "☀️", "thunderstorm": "⛈️",
     "snow": "❄️", "drizzle": "🌦️", "mist": "🌫️", "fog": "🌫️", "haze": "🌫️",
-    "smoke": "🌫️", "dust": "💨", "sand": "💨", "ash": "🌋", "squall": "🌬️",
-    "tornado": "🌪️",
-    # Specific Conditions (como respaldo)
+    "smoke": "🌫️", "dust": "💨", "sand": "💨", "ash": "🌋", "squall": "🌬️", "tornado": "🌪️",
     "clear sky": "☀️", "few clouds": "🌤️", "scattered clouds": "⛅", "broken clouds": "☁️",
     "overcast clouds": "🌥️", "shower rain": "🌦️", "light rain": "🌦️", "moderate rain": "🌧️",
 }
@@ -40,22 +36,26 @@ def load_all_data():
             ws = spreadsheet.worksheet(name)
             df = pd.DataFrame(ws.get_all_records())
             data_dict[key] = df
+        
         # Data Type and Timezone Processing
         daily_df = data_dict['daily']
         daily_df["date"] = pd.to_datetime(daily_df["date"]).dt.date
         numeric_cols_daily = ["temp", "feels_like", "humidity", "rain_probability", "wind_speed", "total_rain_mm", "temp_max", "temp_min", "uvi"]
         for col in numeric_cols_daily: daily_df[col] = pd.to_numeric(daily_df[col], errors='coerce')
         data_dict['daily'] = daily_df
+        
         hourly_df = data_dict['hourly']
         hourly_df["forecast_time"] = pd.to_datetime(hourly_df["forecast_time"]).dt.tz_localize('UTC').dt.tz_convert('America/Mexico_City')
         numeric_cols_hourly = ["temp", "feels_like", "humidity", "rain_probability", "rain_1h", "wind_speed"]
         for col in numeric_cols_hourly: hourly_df[col] = pd.to_numeric(hourly_df[col], errors='coerce')
         data_dict['hourly'] = hourly_df
+        
         alerts_df = data_dict['alerts']
         if not alerts_df.empty and 'start_time' in alerts_df.columns:
             alerts_df["start_time"] = pd.to_datetime(alerts_df["start_time"]).dt.tz_localize('UTC').dt.tz_convert('America/Mexico_City')
             alerts_df["end_time"] = pd.to_datetime(alerts_df["end_time"]).dt.tz_localize('UTC').dt.tz_convert('America/Mexico_City')
         data_dict['alerts'] = alerts_df
+        
         return data_dict
     except Exception as e:
         st.error(f"❌ Error loading data from Google Sheets: {e}")
@@ -185,54 +185,40 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
                                         <p style="margin-bottom: 2px;"><b>{row['temp_max']}°</b> / {row['temp_min']}°</p>
                                         <p style="font-size: 12px;">{str(row['weather_condition']).capitalize()}</p>
                                     </div>""", unsafe_allow_html=True)
+        else:
+            st.warning("No summary data available from the selected date.")
         st.markdown("---") 
 
-        if selected_date_detail == datetime.today().date():
-            st.subheader(f"🕒 Forecast for the Next 48 Hours")
-            city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
-            now_cdmx = pd.Timestamp.now(tz='America/Mexico_City')
-            hourly_forecast_range = city_hourly_df[(city_hourly_df['forecast_time'] >= now_cdmx) & (city_hourly_df['forecast_time'] <= now_cdmx + timedelta(hours=48))]
-            if not hourly_forecast_range.empty:
-                rain_text_labels = hourly_forecast_range['rain_1h'].apply(lambda x: f'{x:.1f} mm' if x > 0 else '')
-                fig_hourly = go.Figure()
-                fig_hourly.add_trace(go.Scatter(x=hourly_forecast_range['forecast_time'], y=hourly_forecast_range['temp'], mode='lines+markers', name='Temperature (°C)', yaxis='y1', line=dict(color='orange')))
-                fig_hourly.add_trace(go.Bar(x=hourly_forecast_range['forecast_time'], y=hourly_forecast_range['rain_probability'], name='Rain Probability (%)', yaxis='y2', marker_color='blue', opacity=0.6, text=rain_text_labels, textposition='outside'))
-                fig_hourly.update_layout(title_text="Hourly Temperature & Rain Probability", yaxis=dict(title="Temperature (°C)", color='orange'), yaxis2=dict(title="Rain Probability (%)", overlaying='y', side='right', range=[0, 100], color='blue'), legend=dict(x=0, y=1.2, orientation="h"))
-                fig_hourly.update_xaxes(title_text="Time (America/Mexico_City)")
-                st.plotly_chart(fig_hourly, use_container_width=True)
-        else:
-            st.info("Hourly forecast is only available for the current day.")
+        # ⭐ CAMBIO FINAL: Lógica del gráfico por hora
+        st.subheader(f"🕒 Hourly Breakdown for {selected_date_detail.strftime('%b %d, %Y')}")
+        city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
         
-        # ⭐ CAMBIO FINAL: GRÁFICO DE TEMPERATURA Y UV CON DOBLE EJE
+        # Filtra los datos por hora para el día completo seleccionado
+        start_of_day = pd.Timestamp(selected_date_detail, tz='America/Mexico_City')
+        end_of_day = start_of_day + timedelta(days=1)
+        hourly_data_for_day = city_hourly_df[(city_hourly_df['forecast_time'] >= start_of_day) & (city_hourly_df['forecast_time'] < end_of_day)]
+        
+        if not hourly_data_for_day.empty:
+            rain_text_labels = hourly_data_for_day['rain_1h'].apply(lambda x: f'{x:.1f} mm' if x > 0 else '')
+            fig_hourly = go.Figure()
+            fig_hourly.add_trace(go.Scatter(x=hourly_data_for_day['forecast_time'], y=hourly_data_for_day['temp'], mode='lines+markers', name='Temperature (°C)', yaxis='y1', line=dict(color='orange')))
+            fig_hourly.add_trace(go.Bar(x=hourly_data_for_day['forecast_time'], y=hourly_data_for_day['rain_probability'], name='Rain Probability (%)', yaxis='y2', marker_color='blue', opacity=0.6, text=rain_text_labels, textposition='outside'))
+            fig_hourly.update_layout(title_text="Hourly Temperature & Rain Probability", yaxis=dict(title="Temperature (°C)", color='orange'), yaxis2=dict(title="Rain Probability (%)", overlaying='y', side='right', range=[0, 100], color='blue'), legend=dict(x=0, y=1.2, orientation="h"))
+            fig_hourly.update_xaxes(title_text="Time (America/Mexico_City)")
+            st.plotly_chart(fig_hourly, use_container_width=True)
+        else:
+            st.info("No hourly data is available for the selected date.")
+
         st.subheader(f"📈 8-Day Trend: Temperature & UV Index")
         future_forecast_trend = city_daily_df[city_daily_df['date'] >= selected_date_detail].head(8)
         if not future_forecast_trend.empty:
-            # Crear una figura con un eje Y secundario
             fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-            # Añadir las líneas de Temperatura (usarán el eje Y primario)
-            fig.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_max'],
-                                     mode='lines+markers', name='Max Temp', line=dict(color='red')),
-                          secondary_y=False)
-            fig.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_min'],
-                                     mode='lines+markers', name='Min Temp', line=dict(color='lightblue'),
-                                     fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)'),
-                          secondary_y=False)
-
-            # Añadir las barras de Índice UV (usarán el eje Y secundario)
-            fig.add_trace(go.Bar(x=future_forecast_trend['date'], y=future_forecast_trend['uvi'],
-                                 name='UV Index', marker_color='purple', opacity=0.5,
-                                 text=future_forecast_trend['uvi'].round(1)),
-                          secondary_y=True)
-
-            # Configurar los títulos y los ejes
-            fig.update_layout(
-                title_text="Temperature Range & UV Index",
-                legend=dict(x=0, y=1.2, orientation="h")
-            )
+            fig.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_max'], mode='lines+markers', name='Max Temp', line=dict(color='red')), secondary_y=False)
+            fig.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_min'], mode='lines+markers', name='Min Temp', line=dict(color='lightblue'), fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)'), secondary_y=False)
+            fig.add_trace(go.Bar(x=future_forecast_trend['date'], y=future_forecast_trend['uvi'], name='UV Index', marker_color='purple', opacity=0.5, text=future_forecast_trend['uvi'].round(1)), secondary_y=True)
+            fig.update_layout(title_text="Temperature Range & UV Index", legend=dict(x=0, y=1.2, orientation="h"))
             fig.update_yaxes(title_text="Temperature (°C)", secondary_y=False)
             fig.update_yaxes(title_text="UV Index", secondary_y=True, range=[0, future_forecast_trend['uvi'].max() + 2])
-
             st.plotly_chart(fig, use_container_width=True)
 
     else:
