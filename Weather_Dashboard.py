@@ -170,6 +170,7 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
                                         <h6>{row['date'].strftime('%a, %d')}</h6>
                                         <p style="font-size: 35px; margin: -10px 0;">{forecast_icon}</p>
                                         <p><b>{row['temp_max']}°</b> / {row['temp_min']}°</p>
+                                        <p style="font-size: 12px;">{row['weather_condition'].capitalize()}</p>
                                     </div>""", unsafe_allow_html=True)
         st.markdown("---") 
 
