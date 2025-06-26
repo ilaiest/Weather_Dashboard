@@ -2,14 +2,14 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
-from datetime import datetime
+from datetime import datetime, timedelta
 import plotly.express as px
+import plotly.graph_objects as go
 
-st.set_page_config(page_title="Weather Dashboard", layout="wide")
+# --- 1. CONFIGURACIÓN DE LA PÁGINA ---
+st.set_page_config(page_title="Weather Operations Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-
-# 🔹 **Diccionario de Iconos de Clima**
+# --- 2. DICCIONARIO DE ICONOS Y ESTADO DE SESIÓN ---
 weather_icons = {
     "clear sky": "☀️", "few clouds": "🌤️", "scattered clouds": "⛅", "broken clouds": "☁️",
     "overcast clouds": "🌥️", "drizzle": "🌦️", "light rain": "🌦️", "moderate rain": "🌧️",
@@ -18,223 +18,192 @@ weather_icons = {
     "squalls": "🌬️", "tornado": "🌪️"
 }
 
-# 🔹 **Autenticación con Google Sheets**
-try:
-    creds_dict = st.secrets["gcp_service_account"]
-    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
-    client = gspread.authorize(creds)
-    spreadsheet = client.open("Weather_Dashboard")
-except Exception as e:
-    st.error(f"❌ Error al autenticar con Google Sheets: {e}")
-    st.stop()
+if 'page' not in st.session_state:
+    st.session_state.page = 'Dashboard General'
+if 'selected_city' not in st.session_state:
+    st.session_state.selected_city = None
 
-
-# 🔹 **Función para Cargar Datos de Google Sheets**
-@st.cache_data
-def load_google_sheets():
-    """Carga datos de Google Sheets asegurando que `rain_probability` y `rain_hours` sean strings."""
+# --- 3. AUTENTICACIÓN Y CARGA DE DATOS ---
+@st.cache_data(ttl=600)
+def load_all_data():
     try:
-        worksheet = spreadsheet.worksheet("Data")
-        data = worksheet.get_all_values()
-        if not data:
-            return pd.DataFrame(), pd.DataFrame()
-
-        weather_df = pd.DataFrame(data[1:], columns=data[0])
-        weather_df["date"] = pd.to_datetime(weather_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
-
-        # ✅ Convertir solo columnas numéricas a `float`
-        numeric_cols = ["temp", "feels_like", "wind_speed", "humidity"]
-        for col in numeric_cols:
-            weather_df[col] = pd.to_numeric(weather_df[col], errors="coerce")
-
-        # ✅ Mantener `rain_probability` y `rain_hours` como `string`
-        weather_df["rain_probability"] = weather_df["rain_probability"].astype(str).replace("", "No Data")
-        weather_df["rain_hours"] = weather_df["rain_hours"].astype(str).replace("None", "No Rain").replace("", "No Rain")
-
-        # Cargar equipo y clusters
-        team_worksheet = spreadsheet.worksheet("City_Team_Cluster")
-        team_data = team_worksheet.get_all_values()
-        team_df = pd.DataFrame(team_data[1:], columns=team_data[0]) if team_data else pd.DataFrame()
-
-        return weather_df, team_df
+        creds_dict = st.secrets["gcp_service_account"]
+        creds = Credentials.from_service_account_info(creds_dict, scopes=["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"])
+        client = gspread.authorize(creds)
+        spreadsheet = client.open("Weather_Dashboard")
+        data_dict = {}
+        # Cargar todas las hojas...
+        sheets_to_load = {
+            "daily": "Data", "hourly": "Hourly Forecast",
+            "alerts": "Weather Alerts", "clusters": "City_Team_Cluster"
+        }
+        for key, name in sheets_to_load.items():
+            ws = spreadsheet.worksheet(name)
+            df = pd.DataFrame(ws.get_all_records())
+            data_dict[key] = df
+        
+        # Procesamiento de Tipos de Datos
+        # Daily
+        daily_df = data_dict['daily']
+        daily_df["date"] = pd.to_datetime(daily_df["date"]).dt.date
+        numeric_cols_daily = ["temp", "feels_like", "humidity", "rain_probability", "wind_speed", "total_rain_mm", "temp_max", "temp_min", "uvi"]
+        for col in numeric_cols_daily: daily_df[col] = pd.to_numeric(daily_df[col], errors='coerce')
+        data_dict['daily'] = daily_df
+        # Hourly
+        hourly_df = data_dict['hourly']
+        hourly_df["forecast_time"] = pd.to_datetime(hourly_df["forecast_time"])
+        numeric_cols_hourly = ["temp", "feels_like", "humidity", "rain_probability", "rain_1h", "wind_speed"]
+        for col in numeric_cols_hourly: hourly_df[col] = pd.to_numeric(hourly_df[col], errors='coerce')
+        data_dict['hourly'] = hourly_df
+        # Alerts
+        alerts_df = data_dict['alerts']
+        if not alerts_df.empty:
+            alerts_df["start_time"] = pd.to_datetime(alerts_df["start_time"])
+            alerts_df["end_time"] = pd.to_datetime(alerts_df["end_time"])
+        data_dict['alerts'] = alerts_df
+        
+        return data_dict
     except Exception as e:
-        st.error(f"Error loading Google Sheets data: {e}")
-        return pd.DataFrame(), pd.DataFrame()
+        st.error(f"❌ Error cargando los datos desde Google Sheets: {e}")
+        return None
+
+# --- 4. LÓGICA PRINCIPAL ---
+all_data = load_all_data()
+
+def set_page(page_name, city_name=None):
+    st.session_state.page = page_name
+    st.session_state.selected_city = city_name
+
+# --- BARRA DE ENCABEZADO PRINCIPAL ---
+header = st.container()
+with header:
+    cols = st.columns([2, 4, 2])
+    with cols[0]:
+        if st.button("🏠 Dashboard General", use_container_width=True):
+            set_page('Dashboard General', None)
+            st.rerun()
+    
+    if all_data:
+        with cols[1]:
+            daily_df_merged = pd.merge(all_data['daily'], all_data['clusters'], on="city", how="left")
+            all_cities = [""] + sorted(daily_df_merged['city'].unique().tolist())
+            
+            # Si estamos en una vista detallada, mostramos la ciudad actual en el buscador
+            current_city_index = all_cities.index(st.session_state.selected_city) if st.session_state.selected_city in all_cities else 0
+
+            search_city = st.selectbox(
+                "Busca una ciudad para ver su detalle...", all_cities, 
+                index=current_city_index, label_visibility="collapsed", placeholder="Escribe para buscar..."
+            )
+            
+            # Si el usuario selecciona una nueva ciudad en el buscador
+            if search_city and search_city != st.session_state.selected_city:
+                set_page('Análisis por Ciudad', search_city)
+                st.rerun()
+
+st.markdown("---")
 
 
+# --- VISTA 1: DASHBOARD GENERAL ---
+if st.session_state.page == 'Dashboard General' and all_data:
+    st.title("🌍 Dashboard General del Clima")
+    
+    # Filtros ahora dentro de un expander
+    with st.expander("🔍 Mostrar Filtros Avanzados"):
+        filter_cols = st.columns(4)
+        with filter_cols[0]:
+            selected_date = st.date_input("📅 Fecha", datetime.today().date())
+        with filter_cols[1]:
+            countries = ["Todos"] + sorted(daily_df_merged['country_code'].unique().tolist())
+            selected_country = st.selectbox("🌎 País", countries)
+        with filter_cols[2]:
+            teams = ["Todos"] + sorted(daily_df_merged['team'].dropna().unique().tolist())
+            selected_team = st.selectbox("🏢 Equipo", teams)
+        with filter_cols[3]:
+            clusters = ["Todos"] + sorted(daily_df_merged['cluster'].dropna().unique().tolist())
+            selected_cluster = st.selectbox("📍 Cluster", clusters)
 
-# 🔹 **Función para obtener datos de clima filtrados**
-def fetch_weather_data(selected_date, selected_country, selected_team, selected_cluster):
-    weather_df, team_df = load_google_sheets()
-
-    if weather_df.empty:
-        return pd.DataFrame()
-
-    weather_df = weather_df[weather_df["date"] == selected_date]
-
-    if not team_df.empty and "city" in weather_df.columns and "city" in team_df.columns:
-        weather_df = weather_df.merge(team_df, on="city", how="left")
-
-    # Filtrar por país si se seleccionó un país específico
-    if "country_code" in weather_df.columns and selected_country != "All":
-        weather_df = weather_df[weather_df["country_code"] == selected_country]
-
-    # Filtrar por equipo (team)
-    if "team" in weather_df.columns and selected_team != "All":
-        weather_df = weather_df[weather_df["team"] == selected_team]
-
-    # Filtrar por cluster
-    if "cluster" in weather_df.columns and selected_cluster != "All":
-        if selected_cluster in weather_df["cluster"].unique():
-            weather_df = weather_df[weather_df["cluster"] == selected_cluster]
-        else:
-            st.warning(f"No hay datos para el cluster '{selected_cluster}'. Mostrando todos los datos.")
-
-    return weather_df
-
-
-# 🔹 **Función para obtener el pronóstico de una ciudad en los próximos días**
-def fetch_city_forecast(selected_city, selected_date, selected_country):
-    weather_df, team_df = load_google_sheets()
-
-    if weather_df.empty:
-        return pd.DataFrame()
-
-    forecast_df = weather_df[weather_df["city"] == selected_city].copy()
-
-    # Filtrar por país si se seleccionó un país específico
-    if "country_code" in forecast_df.columns and selected_country != "All":
-        forecast_df = forecast_df[forecast_df["country_code"] == selected_country]
-
-    forecast_df["date"] = pd.to_datetime(forecast_df["date"], format="%Y-%m-%d", errors="coerce").dt.date
-    forecast_df = forecast_df[forecast_df["date"] >= selected_date].sort_values("date").head(5)
-
-    return forecast_df
-
-
-
-
-# 🚀 **Sidebar: Selección de Vista**
-st.sidebar.markdown("## 🌎 **Weather Navigation**", unsafe_allow_html=True)
-page = st.sidebar.radio("", ["🌍 City Overview", "📊 Detailed Forecast"], label_visibility="collapsed")
-
-# 📅 **Filtros**
-selected_date = st.sidebar.date_input("📅 Select Date", datetime.today().date())
-selected_country = st.sidebar.selectbox("🌎 Select Country", ["All", "MX", "CL", "AR", "CO", "CR", "DO", "EC"])
-selected_team = st.sidebar.selectbox("🏢 Select Team", ["All", "MX", "POC", "CASA"])
-selected_cluster = st.sidebar.selectbox("📍 Select Cluster",
-                                        ["All", "Growers", "Heros", "POC Academy", "POC LAB", "Rocket"])
-
-# 🌍 **City Overview**
-if page == "🌍 City Overview":
-    st.markdown(f"## 🌍 Weather Overview for {selected_date}")
-
-    # Aplicar los filtros existentes
-    weather_df = fetch_weather_data(selected_date, selected_country, selected_team, selected_cluster)
-
-    if not weather_df.empty:
-        # Convertir `rain_probability` a numérico para ordenar correctamente
-        weather_df["rain_probability_numeric"] = pd.to_numeric(
-            weather_df["rain_probability"].str.replace("%", "", regex=True), errors="coerce"
-        ).fillna(0)
-
-        # Ordenar de mayor a menor según `rain_probability_numeric`
-        weather_df = weather_df.sort_values(by="rain_probability_numeric", ascending=False)
-
-        # Volver a formatear `rain_probability` con `%` para la visualización
-        weather_df["rain_probability"] = weather_df["rain_probability_numeric"].astype(int).astype(str) + "%"
-
-        # Definir el número de columnas dinámicamente para evitar saltos
-        num_columns = min(3, len(weather_df))
-        columns = st.columns(num_columns)
-
-        # Distribuir tarjetas sin saltos
-        for i, row in enumerate(weather_df.itertuples()):
-            col = columns[i % num_columns]  # Asegura que las tarjetas llenen bien las columnas
-            with col:
-                weather_icon = weather_icons.get(row.weather_condition, "🌎")
-                st.markdown(
-                    f"""
-                    <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; margin-bottom: 10px;">
-                        <h3>{weather_icon} {row.city}</h3>
-                        <p>🌡️ Temperature: {row.temp}°C | Feels Like: {row.feels_like}°C</p>
-                        <p>🌬️ Wind Speed: {row.wind_speed} km/h</p>
-                        <p>💧 Humidity: {row.humidity}%</p>
-                        <p>🌧️ Rain Probability: {row.rain_probability}</p>
-                        <p>⏳ Rain Hours: {row.rain_hours if row.rain_hours else 'No Rain Expected'}</p>
-                    </div>
-                    """, unsafe_allow_html=True
-                )
+    # Aplicar filtros
+    filtered_df = daily_df_merged[daily_df_merged["date"] == selected_date]
+    if selected_country != "Todos": filtered_df = filtered_df[filtered_df["country_code"] == selected_country]
+    if selected_team != "Todos": filtered_df = filtered_df[filtered_df["team"] == selected_team]
+    if selected_cluster != "Todos": filtered_df = filtered_df[filtered_df["cluster"] == selected_cluster]
+    
+    # Panel de Alertas
+    st.subheader("🚨 Alertas Gubernamentales Activas")
+    # ... (código de alertas sin cambios)
+    alerts_df = all_data['alerts']
+    cities_in_view = filtered_df['city'].unique()
+    active_alerts = alerts_df[(alerts_df['city'].isin(cities_in_view)) & (alerts_df['start_time'].dt.date <= selected_date) & (alerts_df['end_time'].dt.date >= selected_date)]
+    if not active_alerts.empty:
+        with st.expander(f"⚠️ Se encontraron {len(active_alerts)} alertas activas. Haz clic para ver detalles.", expanded=True):
+            for _, alert in active_alerts.iterrows(): st.warning(f"**{alert['city']}: {alert['event']}** (Fuente: {alert['sender_name']})\n_{alert['description']}_")
     else:
-        st.warning("No weather data available for the selected filters.")
-
-# 📊 **Detailed Forecast**
-elif page == "📊 Detailed Forecast":
-    st.markdown("## 📊 5-Day Forecast")
-
-    available_cities_df = fetch_weather_data(selected_date, selected_country, selected_team, selected_cluster)
-    available_cities = available_cities_df["city"].unique().tolist() if not available_cities_df.empty else []
-
-    city_list = ["Select a City"] + available_cities
-    selected_city = st.selectbox("🏙️ Choose a City", city_list)
-
-    if selected_city != "Select a City":
-        city_forecast_df = fetch_city_forecast(selected_city, selected_date, selected_country)
-
-        if not city_forecast_df.empty:
-            today_weather = city_forecast_df.iloc[0]
-            normalized_condition = today_weather["weather_condition"].strip().lower()
-            weather_icon = weather_icons.get(normalized_condition, "🌎")
-
-        # Tarjeta de clima principal
-        st.markdown(f"""
-                <div style="border-radius: 10px; padding: 15px; background-color: #1E1E1E; color: white; text-align: center;">
-                    <h2 style="color: #00AEEF;">{selected_city} - {today_weather['date']}</h2>
-                    <h1 style="font-size: 60px;">{weather_icon} {today_weather['temp']}°C</h1>
-                    <p style="font-size: 20px;">Feels Like: {today_weather['feels_like']}°C</p>
-                    <p style="font-size: 18px;">{today_weather['weather_condition']}</p>
-                    <p style="font-size: 18px;">🌬️ Wind Speed: {today_weather['wind_speed']} km/h | 💧 Humidity: {today_weather['humidity']}%</p>
-                    <p style="font-size: 18px;">🌧️ Rain Probability: {today_weather['rain_probability']} | ⏳ Rain Hours: {today_weather['rain_hours'] if today_weather['rain_hours'] else 'No Rain Expected'}</p>
-                </div>
-            """, unsafe_allow_html=True)
-
-        # 📅 Forecast de los próximos días (Ajustado para mayor tamaño)
-        st.markdown("<h3 style='color:#00AEEF; text-align: center;'>🌤️ Next Days Weather Forecast</h3>",
-                    unsafe_allow_html=True)
-
-        forecast_cols = st.columns(len(city_forecast_df))  # Crear columnas dinámicas
-
-        # 🔹 Corrección del Error IndexError
-        if not city_forecast_df.empty:  # ✅ Evita error si `city_forecast_df` está vacío
-            num_days = len(city_forecast_df)  # ✅ Número de días disponibles en el pronóstico
-            forecast_cols = st.columns(num_days)  # ✅ Crear columnas dinámicas según la cantidad de días
-
-            for idx, row in enumerate(
-                    city_forecast_df.itertuples()):  # ✅ `enumerate()` asegura que `idx` siempre esté en rango
-                forecast_icon = weather_icons.get(row.weather_condition.strip().lower(), "🌎")
-                with forecast_cols[idx]:  # ✅ Ahora `idx` no podrá exceder el número de columnas
+        st.success("✅ No hay alertas gubernamentales activas para las ciudades seleccionadas.")
+    st.markdown("---")
+    
+    st.subheader(f"🏙️ Resumen por Ciudad para el {selected_date.strftime('%d %b, %Y')}")
+    if not filtered_df.empty:
+        weather_df_sorted = filtered_df.sort_values(by="rain_probability", ascending=False)
+        num_columns = 4 # Podemos usar 4 columnas ahora que no hay sidebar
+        columns = st.columns(num_columns)
+        
+        for i, row in enumerate(weather_df_sorted.itertuples()):
+            col = columns[i % num_columns]
+            with col:
+                with st.container(border=True):
+                    weather_icon = weather_icons.get(row.weather_condition.lower(), "🌎")
+                    st.markdown(f"<h5>{weather_icon} {row.city}</h5>", unsafe_allow_html=True)
                     st.markdown(f"""
-                    <div style="border-radius: 10px; padding: 20px; background-color: #2E2E2E; color: white; text-align: center;
-                                width: 150px; height: 160px; margin-left: auto;">
-                        <h4 style="margin: 0; font-size: 20px; margin-bottom: -10px;">{row.date.strftime('%a')}</h4>
-                        <p style="font-size: 40px; margin: -10px 0;">{forecast_icon}</p>
-                        <h4 style="margin: 0; font-size: 18px; margin-top: -10px;">{row.temp}°C</h4>
-                    </div>
+                        <p style="font-size: 13px;">
+                        🌡️ Temp: <b>{row.temp_min}°C / {row.temp_max}°C</b><br>
+                        ☀️ UV: <b>{row.uvi}</b> | 💧 Humedad: {row.humidity}%<br>
+                        🌧️ Lluvia: <b>{row.rain_probability}%</b> ({row.total_rain_mm} mm)
+                        </p>
                     """, unsafe_allow_html=True)
+                    if st.button("Ver Análisis 📈", key=f"btn_{row.Index}", use_container_width=True, type="primary"):
+                        set_page('Análisis por Ciudad', row.city)
+                        st.rerun()
+    else:
+        st.warning("No hay datos de clima para los filtros seleccionados.")
 
-            # 📈 Temperature Trend
-            st.markdown("### 📈 Temperature Trends")
-            fig_temp = px.line(city_forecast_df, x="date", y=["temp", "feels_like"],
-                               labels={"value": "Temperature (°C)", "date": "Date"},
-                               title="🌡️ Temperature Over the Next Days", markers=True)
-            st.plotly_chart(fig_temp, use_container_width=True)
+# --- VISTA 2: ANÁLISIS POR CIUDAD ---
+elif st.session_state.page == 'Análisis por Ciudad' and all_data:
+    selected_city = st.session_state.selected_city
+    
+    if selected_city:
+        st.title(f"📊 Análisis Detallado para: {selected_city}")
+        
+        # Lógica de la página de detalle (sin cambios, solo se alimenta de `selected_city`)
+        city_daily_df = all_data['daily'][all_data['daily']['city'] == selected_city]
+        city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
+        current_date = datetime.today().date() # Usamos la fecha actual para el pronóstico
+        
+        # Gráfico de Pronóstico por Hora
+        st.subheader(f"🕒 Pronóstico para las Próximas 48 Horas")
+        now = pd.Timestamp.now(tz='UTC').tz_localize(None) # Usamos UTC naive para comparar
+        hourly_forecast_range = city_hourly_df[(city_hourly_df['forecast_time'] >= now) & (city_hourly_df['forecast_time'] <= now + timedelta(hours=48))]
+        if not hourly_forecast_range.empty:
+            fig_hourly = go.Figure()
+            fig_hourly.add_trace(go.Scatter(x=hourly_forecast_range['forecast_time'], y=hourly_forecast_range['temp'], mode='lines+markers', name='Temperatura (°C)', yaxis='y1', line=dict(color='orange')))
+            fig_hourly.add_trace(go.Bar(x=hourly_forecast_range['forecast_time'], y=hourly_forecast_range['rain_probability'], name='Prob. Lluvia (%)', yaxis='y2', marker_color='blue', opacity=0.6))
+            fig_hourly.update_layout(title_text="Temperatura y Probabilidad de Lluvia por Hora", yaxis=dict(title="Temperatura (°C)", color='orange'), yaxis2=dict(title="Probabilidad de Lluvia (%)", overlaying='y', side='right', range=[0, 100], color='blue'), legend=dict(x=0, y=1.1, orientation="h"))
+            st.plotly_chart(fig_hourly, use_container_width=True)
 
-            # 🌧️ Rain Probability Trend
-            st.markdown("### 🌧️ Rain Probability Trend")
-            fig_rain = px.bar(city_forecast_df, x="date", y="rain_probability",
-                              title="🌧️ Rain Probability Over the Next Days",
-                              labels={"rain_probability": "Rain Probability (%)"}, text="rain_probability")
-            st.plotly_chart(fig_rain, use_container_width=True)
-
+        # Pronóstico Diario
+        st.subheader(f"🗓️ Pronóstico para los Próximos 8 Días")
+        future_forecast = city_daily_df[city_daily_df['date'] >= current_date].head(8)
+        if not future_forecast.empty:
+            fig_temp_range = go.Figure()
+            fig_temp_range.add_trace(go.Scatter(x=future_forecast['date'], y=future_forecast['temp_max'], mode='lines+markers', name='Temp. Máxima', line=dict(color='red'), text=future_forecast['temp_max'].apply(lambda x: f'{x}°')))
+            fig_temp_range.add_trace(go.Scatter(x=future_forecast['date'], y=future_forecast['temp_min'], mode='lines+markers', name='Temp. Mínima', line=dict(color='lightblue'), fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)', text=future_forecast['temp_min'].apply(lambda x: f'{x}°')))
+            fig_temp_range.update_layout(title="Rango de Temperatura para los Próximos Días", yaxis_title="Temperatura (°C)")
+            st.plotly_chart(fig_temp_range, use_container_width=True)
         else:
-            st.warning("No forecast data available for this city.")
+            st.warning("No hay datos de pronóstico futuro para esta ciudad.")
+            
+    else:
+        st.info("Usa la barra de búsqueda en el encabezado para encontrar una ciudad.")
+
+elif not all_data:
+    st.error("No se pudieron cargar los datos. Por favor, revisa la conexión y la configuración de Google Sheets.")
