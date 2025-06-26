@@ -4,13 +4,12 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
-# Ya no necesitamos streamlit-card
+
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(page_title="Weather Operations Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
 # --- 2. WEATHER ICONS & SESSION STATE ---
-# ⭐ DICCIONARIO CORREGIDO Y AMPLIADO: Ahora incluye claves generales como "clouds", "rain", etc.
 weather_icons = {
     # Main Conditions
     "clouds": "☁️", "rain": "🌧️", "clear": "☀️", "thunderstorm": "⛈️",
@@ -27,10 +26,9 @@ if 'page' not in st.session_state:
 if 'selected_city' not in st.session_state:
     st.session_state.selected_city = None
 
-# --- 3. DATA LOADING (sin cambios) ---
+# --- 3. DATA LOADING  ---
 @st.cache_data(ttl=600)
 def load_all_data():
-    # ... (La función es la misma que en la respuesta anterior)
     try:
         creds_dict = st.secrets["gcp_service_account"]
         creds = Credentials.from_service_account_info(creds_dict, scopes=["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"])
@@ -69,7 +67,7 @@ def set_page(page_name, city_name=None):
     st.session_state.page = page_name
     st.session_state.selected_city = city_name
 
-# --- HEADER BAR (sin cambios) ---
+# --- HEADER BAR ---
 header = st.container()
 with header:
     cols = st.columns([2, 4, 2])
@@ -120,16 +118,13 @@ if st.session_state.page == 'General Dashboard' and all_data:
         for i, row in enumerate(weather_df_sorted.itertuples()):
             col = columns[i % num_columns]
             with col:
-                with st.container(border=True, height=280): # Control de altura
-                    # ⭐ LÓGICA DE ICONOS MEJORADA
+                with st.container(border=True, height=300): # Aumentamos un poco la altura para el espacio extra
                     main_cond = str(row.main_condition).lower().strip()
                     weather_cond = str(row.weather_condition).lower().strip()
                     weather_icon = weather_icons.get(weather_cond, weather_icons.get(main_cond, "🌎"))
-
                     active_alert = alerts_df[(alerts_df['city'] == row.city) & (alerts_df['start_time'].dt.date <= selected_date) & (alerts_df['end_time'].dt.date >= selected_date)]
                     alert_icon = " 🚨" if not active_alert.empty else ""
 
-                    # ⭐ TARJETA MANUAL CON EMOJIS Y ESTILO COMPACTO
                     st.markdown(f"<h6>{weather_icon} {row.city}{alert_icon}</h6>", unsafe_allow_html=True)
                     st.markdown(f"""
                         <p style="font-size: 14px; margin-bottom: 5px;">
@@ -140,12 +135,13 @@ if st.session_state.page == 'General Dashboard' and all_data:
                         </p>
                     """, unsafe_allow_html=True)
 
-                    # ⭐ ALERTA DENTRO DE LA TARJETA
                     if not active_alert.empty:
                         with st.expander("View Alert"):
                             st.warning(f"**{active_alert.iloc[0]['event']}**\n\n_{active_alert.iloc[0]['description']}_")
                     
-                    # ⭐ BOTÓN DISCRETO PARA NAVEGAR
+                    # ⭐ AQUÍ ESTÁ EL CAMBIO: Añadimos espacio vertical antes del botón
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    
                     if st.button("Details 📈", key=f"btn_{row.Index}", use_container_width=True):
                         set_page('Detailed Analysis', row.city)
                         st.rerun()
@@ -160,7 +156,6 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
         city_daily_df = all_data['daily'][all_data['daily']['city'] == selected_city]
         current_date = datetime.today().date()
         
-        # Preview de Próximos Días
         st.subheader("🗓️ 7-Day Summary")
         future_forecast_preview = city_daily_df[city_daily_df['date'] >= current_date].head(7)
         if not future_forecast_preview.empty:
@@ -168,7 +163,6 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
             for idx, (_, row) in enumerate(future_forecast_preview.iterrows()):
                 with forecast_cols[idx]:
                     with st.container(border=True):
-                        # ⭐ LÓGICA DE ICONOS MEJORADA TAMBIÉN AQUÍ
                         main_cond = str(row['main_condition']).lower().strip()
                         weather_cond = str(row['weather_condition']).lower().strip()
                         forecast_icon = weather_icons.get(weather_cond, weather_icons.get(main_cond, "🌎"))
@@ -179,9 +173,7 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
                                     </div>""", unsafe_allow_html=True)
         st.markdown("---") 
 
-        # Gráficos (sin cambios)
         st.subheader(f"🕒 Forecast for the Next 48 Hours")
-        # ... (código del gráfico sin cambios) ...
         city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
         now = pd.Timestamp.now(tz='UTC').tz_localize(None)
         hourly_forecast_range = city_hourly_df[(city_hourly_df['forecast_time'] >= now) & (city_hourly_df['forecast_time'] <= now + timedelta(hours=48))]
@@ -193,7 +185,6 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
             st.plotly_chart(fig_hourly, use_container_width=True)
 
         st.subheader(f"📈 8-Day Temperature Trend")
-        # ... (código del gráfico sin cambios) ...
         future_forecast_trend = city_daily_df[city_daily_df['date'] >= current_date].head(8)
         if not future_forecast_trend.empty:
             fig_temp_range = go.Figure()
