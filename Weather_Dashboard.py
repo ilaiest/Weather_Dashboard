@@ -11,7 +11,6 @@ st.set_page_config(page_title="Weather Operations Dashboard", layout="wide", ini
 
 # --- 2. WEATHER ICONS & SESSION STATE ---
 weather_icons = {
-    # This dictionary already uses English keys, which is perfect.
     "clear sky": "☀️", "few clouds": "🌤️", "scattered clouds": "⛅", "broken clouds": "☁️",
     "overcast clouds": "🌥️", "shower rain": "🌦️", "light rain": "🌦️", "rain": "🌧️",
     "moderate rain": "🌧️", "heavy intensity rain": "🌧️", "very heavy rain": "🌧️",
@@ -139,10 +138,8 @@ if st.session_state.page == 'General Dashboard' and all_data:
             col = columns[i % num_columns]
             with col:
                 with st.container(border=True):
-                    # --- ICON PREVIEW RE-ADDED & ALERT LOGIC ---
                     weather_icon = weather_icons.get(row.weather_condition.lower(), "🌎")
                     
-                    # Check for active alerts for THIS specific city
                     active_alert = alerts_df[
                         (alerts_df['city'] == row.city) &
                         (alerts_df['start_time'].dt.date <= selected_date) &
@@ -159,9 +156,8 @@ if st.session_state.page == 'General Dashboard' and all_data:
                         </p>
                     """, unsafe_allow_html=True)
 
-                    # If there's an alert, show it in an expander within the card
                     if not active_alert.empty:
-                        with st.expander("View Alert Details"):
+                        with st.expander("View Alert"):
                             st.warning(f"**{active_alert.iloc[0]['event']}**\n_{active_alert.iloc[0]['description']}_")
                     
                     if st.button("See Analysis 📈", key=f"btn_{row.Index}", use_container_width=True, type="primary"):
@@ -178,27 +174,46 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
         st.title(f"📊 Detailed Analysis for: {selected_city}")
         
         city_daily_df = all_data['daily'][all_data['daily']['city'] == selected_city]
-        city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
         current_date = datetime.today().date()
         
-        # Hourly Forecast Chart
+        # --- NUEVO: PREVIEW DE PRÓXIMOS DÍAS ---
+        st.subheader("🗓️ 5-Day Summary")
+        future_forecast_preview = city_daily_df[city_daily_df['date'] >= current_date].head(5)
+
+        if not future_forecast_preview.empty:
+            forecast_cols = st.columns(len(future_forecast_preview))
+            for idx, row in future_forecast_preview.iterrows():
+                with forecast_cols[idx]:
+                    with st.container(border=True):
+                        forecast_icon = weather_icons.get(row['weather_condition'].lower(), "🌎")
+                        st.markdown(f"""
+                            <div style="text-align: center; height: 130px;">
+                                <h6>{row['date'].strftime('%a, %d')}</h6>
+                                <p style="font-size: 35px; margin: -10px 0;">{forecast_icon}</p>
+                                <p><b>{row['temp_max']}°</b> / {row['temp_min']}°</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+        st.markdown("---") # Separador visual
+
+        # --- Gráfico de Pronóstico por Hora ---
         st.subheader(f"🕒 Forecast for the Next 48 Hours")
+        city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
         now = pd.Timestamp.now(tz='UTC').tz_localize(None)
         hourly_forecast_range = city_hourly_df[(city_hourly_df['forecast_time'] >= now) & (city_hourly_df['forecast_time'] <= now + timedelta(hours=48))]
         if not hourly_forecast_range.empty:
             fig_hourly = go.Figure()
             fig_hourly.add_trace(go.Scatter(x=hourly_forecast_range['forecast_time'], y=hourly_forecast_range['temp'], mode='lines+markers', name='Temperature (°C)', yaxis='y1', line=dict(color='orange')))
             fig_hourly.add_trace(go.Bar(x=hourly_forecast_range['forecast_time'], y=hourly_forecast_range['rain_probability'], name='Rain Probability (%)', yaxis='y2', marker_color='blue', opacity=0.6))
-            fig_hourly.update_layout(title_text="Hourly Temperature & Rain Probability", yaxis=dict(title="Temperature (°C)", color='orange'), yaxis2=dict(title="Rain Probability (%)", overlaying='y', side='right', range=[0, 100], color='blue'), legend=dict(x=0, y=1.1, orientation="h"))
+            fig_hourly.update_layout(title_text="Hourly Temperature & Rain Probability", yaxis=dict(title="Temperature (°C)", color='orange'), yaxis2=dict(title="Rain Probability (%)", overlaying='y', side='right', range=[0, 100], color='blue'), legend=dict(x=0, y=1.2, orientation="h"))
             st.plotly_chart(fig_hourly, use_container_width=True)
 
-        # 8-Day Forecast Chart
-        st.subheader(f"🗓️ 8-Day Forecast")
-        future_forecast = city_daily_df[city_daily_df['date'] >= current_date].head(8)
-        if not future_forecast.empty:
+        # --- Gráfico de Pronóstico a 8 Días ---
+        st.subheader(f"📈 8-Day Temperature Trend")
+        future_forecast_trend = city_daily_df[city_daily_df['date'] >= current_date].head(8)
+        if not future_forecast_trend.empty:
             fig_temp_range = go.Figure()
-            fig_temp_range.add_trace(go.Scatter(x=future_forecast['date'], y=future_forecast['temp_max'], mode='lines+markers', name='Max Temp', line=dict(color='red'), text=future_forecast['temp_max'].apply(lambda x: f'{x}°')))
-            fig_temp_range.add_trace(go.Scatter(x=future_forecast['date'], y=future_forecast['temp_min'], mode='lines+markers', name='Min Temp', line=dict(color='lightblue'), fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)', text=future_forecast['temp_min'].apply(lambda x: f'{x}°')))
+            fig_temp_range.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_max'], mode='lines+markers', name='Max Temp', line=dict(color='red'), text=future_forecast_trend['temp_max'].apply(lambda x: f'{x}°')))
+            fig_temp_range.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_min'], mode='lines+markers', name='Min Temp', line=dict(color='lightblue'), fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)', text=future_forecast_trend['temp_min'].apply(lambda x: f'{x}°')))
             fig_temp_range.update_layout(title="Temperature Range for the Next Days", yaxis_title="Temperature (°C)")
             st.plotly_chart(fig_temp_range, use_container_width=True)
         else:
