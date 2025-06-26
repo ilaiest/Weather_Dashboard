@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(page_title="Weather Operations Dashboard", layout="wide", initial_sidebar_state="collapsed")
@@ -208,14 +209,36 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
         else:
             st.info("Hourly forecast is only available for the current day.")
 
-        st.subheader(f"📈 8-Day Temperature Trend from {selected_date_detail.strftime('%b %d')}")
+         st.subheader(f"📈 8-Day Trend: Temperature & UV Index")
         future_forecast_trend = city_daily_df[city_daily_df['date'] >= selected_date_detail].head(8)
         if not future_forecast_trend.empty:
-            fig_temp_range = go.Figure()
-            fig_temp_range.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_max'], mode='lines+markers', name='Max Temp', line=dict(color='red'), text=future_forecast_trend['temp_max'].apply(lambda x: f'{x}°')))
-            fig_temp_range.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_min'], mode='lines+markers', name='Min Temp', line=dict(color='lightblue'), fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)', text=future_forecast_trend['temp_min'].apply(lambda x: f'{x}°')))
-            fig_temp_range.update_layout(title="Temperature Range for the Next Days", yaxis_title="Temperature (°C)")
-            st.plotly_chart(fig_temp_range, use_container_width=True)
+            # Crear una figura con un eje Y secundario
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+            # Añadir las líneas de Temperatura (usarán el eje Y primario)
+            fig.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_max'],
+                                     mode='lines+markers', name='Max Temp', line=dict(color='red')),
+                          secondary_y=False)
+            fig.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_min'],
+                                     mode='lines+markers', name='Min Temp', line=dict(color='lightblue'),
+                                     fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)'),
+                          secondary_y=False)
+
+            # Añadir las barras de Índice UV (usarán el eje Y secundario)
+            fig.add_trace(go.Bar(x=future_forecast_trend['date'], y=future_forecast_trend['uvi'],
+                                 name='UV Index', marker_color='purple', opacity=0.5,
+                                 text=future_forecast_trend['uvi'].round(1)),
+                          secondary_y=True)
+
+            # Configurar los títulos y los ejes
+            fig.update_layout(
+                title_text="Temperature Range & UV Index",
+                legend=dict(x=0, y=1.2, orientation="h")
+            )
+            fig.update_yaxes(title_text="Temperature (°C)", secondary_y=False)
+            fig.update_yaxes(title_text="UV Index", secondary_y=True, range=[0, future_forecast_trend['uvi'].max() + 2])
+
+            st.plotly_chart(fig, use_container_width=True)
 
     else:
         st.info("Use the search bar in the header to find a city.")
