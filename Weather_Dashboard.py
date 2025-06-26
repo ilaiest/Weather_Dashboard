@@ -15,7 +15,7 @@ weather_icons = {
     "snow": "❄️", "drizzle": "🌦️", "mist": "🌫️", "fog": "🌫️", "haze": "🌫️",
     "smoke": "🌫️", "dust": "💨", "sand": "💨", "ash": "🌋", "squall": "🌬️",
     "tornado": "🌪️",
-    # Specific Conditions (como respaldo)
+    # Specific Conditions 
     "clear sky": "☀️", "few clouds": "🌤️", "scattered clouds": "⛅", "broken clouds": "☁️",
     "overcast clouds": "🌥️", "shower rain": "🌦️", "light rain": "🌦️", "moderate rain": "🌧️",
 }
@@ -166,7 +166,7 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
                         weather_cond = str(row['weather_condition']).lower().strip()
                         forecast_icon = weather_icons.get(weather_cond, weather_icons.get(main_cond, "🌎"))
                         
-                        # ⭐ CAMBIO FINAL AQUÍ
+                        
                         st.markdown(f"""
                             <div style="text-align: center; height: 150px;">
                                 <h6>{row['date'].strftime('%a, %d')}</h6>
@@ -178,7 +178,7 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
 
         st.markdown("---") 
 
-        # Gráficos
+        # Graphs
         st.subheader(f"🕒 Forecast for the Next 48 Hours")
         city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
         now = pd.Timestamp.now(tz='UTC').tz_localize(None)
