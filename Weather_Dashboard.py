@@ -5,7 +5,6 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
 
-
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(page_title="Weather Operations Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
@@ -26,7 +25,7 @@ if 'page' not in st.session_state:
 if 'selected_city' not in st.session_state:
     st.session_state.selected_city = None
 
-# --- 3. DATA LOADING  ---
+# --- 3. DATA LOADING ---
 @st.cache_data(ttl=600)
 def load_all_data():
     try:
@@ -40,6 +39,7 @@ def load_all_data():
             ws = spreadsheet.worksheet(name)
             df = pd.DataFrame(ws.get_all_records())
             data_dict[key] = df
+        # Data Type Processing
         daily_df = data_dict['daily']
         daily_df["date"] = pd.to_datetime(daily_df["date"]).dt.date
         numeric_cols_daily = ["temp", "feels_like", "humidity", "rain_probability", "wind_speed", "total_rain_mm", "temp_max", "temp_min", "uvi"]
@@ -87,6 +87,7 @@ with header:
 
 st.markdown("---")
 
+
 # --- VIEW 1: GENERAL DASHBOARD ---
 if st.session_state.page == 'General Dashboard' and all_data:
     st.title("🌍 General Weather Dashboard")
@@ -118,7 +119,7 @@ if st.session_state.page == 'General Dashboard' and all_data:
         for i, row in enumerate(weather_df_sorted.itertuples()):
             col = columns[i % num_columns]
             with col:
-                with st.container(border=True, height=300): # Aumentamos un poco la altura para el espacio extra
+                with st.container(border=True, height=300):
                     main_cond = str(row.main_condition).lower().strip()
                     weather_cond = str(row.weather_condition).lower().strip()
                     weather_icon = weather_icons.get(weather_cond, weather_icons.get(main_cond, "🌎"))
@@ -139,9 +140,7 @@ if st.session_state.page == 'General Dashboard' and all_data:
                         with st.expander("View Alert"):
                             st.warning(f"**{active_alert.iloc[0]['event']}**\n\n_{active_alert.iloc[0]['description']}_")
                     
-                    # ⭐ AQUÍ ESTÁ EL CAMBIO: Añadimos espacio vertical antes del botón
                     st.markdown("<br>", unsafe_allow_html=True)
-                    
                     if st.button("Details 📈", key=f"btn_{row.Index}", use_container_width=True):
                         set_page('Detailed Analysis', row.city)
                         st.rerun()
@@ -166,14 +165,20 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
                         main_cond = str(row['main_condition']).lower().strip()
                         weather_cond = str(row['weather_condition']).lower().strip()
                         forecast_icon = weather_icons.get(weather_cond, weather_icons.get(main_cond, "🌎"))
-                        st.markdown(f"""<div style="text-align: center; height: 130px;">
-                                        <h6>{row['date'].strftime('%a, %d')}</h6>
-                                        <p style="font-size: 35px; margin: -10px 0;">{forecast_icon}</p>
-                                        <p><b>{row['temp_max']}°</b> / {row['temp_min']}°</p>
-                                        <p style="font-size: 12px;">{row['weather_condition'].capitalize()}</p>
-                                    </div>""", unsafe_allow_html=True)
+                        
+                        # ⭐ CAMBIO FINAL AQUÍ
+                        st.markdown(f"""
+                            <div style="text-align: center; height: 150px;">
+                                <h6>{row['date'].strftime('%a, %d')}</h6>
+                                <p style="font-size: 35px; margin-top: -10px; margin-bottom: 0px;">{forecast_icon}</p>
+                                <p style="margin-bottom: 2px;"><b>{row['temp_max']}°</b> / {row['temp_min']}°</p>
+                                <p style="font-size: 12px;">{str(row['weather_condition']).capitalize()}</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+
         st.markdown("---") 
 
+        # Gráficos
         st.subheader(f"🕒 Forecast for the Next 48 Hours")
         city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
         now = pd.Timestamp.now(tz='UTC').tz_localize(None)
