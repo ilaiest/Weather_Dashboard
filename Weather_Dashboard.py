@@ -177,8 +177,8 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
         current_date = datetime.today().date()
         
         # --- NUEVO: PREVIEW DE PRÓXIMOS DÍAS ---
-        st.subheader("🗓️ 5-Day Summary")
-        future_forecast_preview = city_daily_df[city_daily_df['date'] >= current_date].head(5)
+        st.subheader("🗓️ 7-Day Summary")
+        future_forecast_preview = city_daily_df[city_daily_df['date'] >= current_date].head(7)
 
         if not future_forecast_preview.empty:
             forecast_cols = st.columns(len(future_forecast_preview))
