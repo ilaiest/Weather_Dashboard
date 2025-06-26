@@ -4,44 +4,22 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
-from streamlit_card import card 
+# Ya no necesitamos streamlit-card
 
 # --- 1. PAGE CONFIGURATION ---
 st.set_page_config(page_title="Weather Operations Dashboard", layout="wide", initial_sidebar_state="collapsed")
 
-# --- 2. WEATHER ICONS (EXPANDED) & SESSION STATE ---
-# ⭐ DICCIONARIO DE ICONOS MÁS COMPLETO
+# --- 2. WEATHER ICONS & SESSION STATE ---
+# ⭐ DICCIONARIO CORREGIDO Y AMPLIADO: Ahora incluye claves generales como "clouds", "rain", etc.
 weather_icons = {
-    "clear sky": "☀️",
-    "few clouds": "🌤️",
-    "scattered clouds": "⛅",
-    "broken clouds": "☁️",
-    "overcast clouds": "🌥️",
-    "shower rain": "🌦️",
-    "light rain": "🌦️",
-    "moderate rain": "🌧️",
-    "heavy intensity rain": "🌧️",
-    "very heavy rain": "🌧️",
-    "extreme rain": "🌧️",
-    "freezing rain": "🌨️",
-    "light intensity shower rain": "🌦️",
-    "heavy intensity shower rain": "🌧️",
-    "ragged shower rain": "🌦️",
-    "thunderstorm": "⛈️",
-    "thunderstorm with light rain": "⛈️",
-    "thunderstorm with rain": "⛈️",
-    "thunderstorm with heavy rain": "⛈️",
-    "light thunderstorm": "⛈️",
-    "heavy thunderstorm": "⛈️",
-    "ragged thunderstorm": "⛈️",
-    "thunderstorm with drizzle": "⛈️",
-    "snow": "❄️",
-    "light snow": "❄️",
-    "heavy snow": "❄️",
-    "sleet": "🌨️",
-    "mist": "🌫️", "smoke": "🌫️", "haze": "🌫️", "sand/ dust whirls": "💨",
-    "fog": "🌁", "sand": "💨", "dust": "💨", "volcanic ash": "🌋",
-    "squalls": "🌬️", "tornado": "🌪️"
+    # Main Conditions
+    "clouds": "☁️", "rain": "🌧️", "clear": "☀️", "thunderstorm": "⛈️",
+    "snow": "❄️", "drizzle": "🌦️", "mist": "🌫️", "fog": "🌫️", "haze": "🌫️",
+    "smoke": "🌫️", "dust": "💨", "sand": "💨", "ash": "🌋", "squall": "🌬️",
+    "tornado": "🌪️",
+    # Specific Conditions (como respaldo)
+    "clear sky": "☀️", "few clouds": "🌤️", "scattered clouds": "⛅", "broken clouds": "☁️",
+    "overcast clouds": "🌥️", "shower rain": "🌦️", "light rain": "🌦️", "moderate rain": "🌧️",
 }
 
 if 'page' not in st.session_state:
@@ -104,7 +82,7 @@ with header:
             daily_df_merged = pd.merge(all_data['daily'], all_data['clusters'], on="city", how="left")
             all_cities = [""] + sorted(daily_df_merged['city'].unique().tolist())
             current_city_index = all_cities.index(st.session_state.selected_city) if st.session_state.selected_city in all_cities else 0
-            search_city = st.selectbox("Search for a city to see its detailed analysis...", all_cities, index=current_city_index, label_visibility="collapsed", placeholder="Type to search for a city...")
+            search_city = st.selectbox("Search for a city...", all_cities, index=current_city_index, label_visibility="collapsed", placeholder="Type to search for a city...")
             if search_city and search_city != st.session_state.selected_city:
                 set_page('Detailed Analysis', search_city)
                 st.rerun()
@@ -142,40 +120,47 @@ if st.session_state.page == 'General Dashboard' and all_data:
         for i, row in enumerate(weather_df_sorted.itertuples()):
             col = columns[i % num_columns]
             with col:
-                # ⭐ LÓGICA DE LA TARJETA CLICKABLE
-                weather_icon = weather_icons.get(str(row.weather_condition).lower().strip(), "🌎")
-                active_alert = alerts_df[(alerts_df['city'] == row.city) & (alerts_df['start_time'].dt.date <= selected_date) & (alerts_df['end_time'].dt.date >= selected_date)]
-                alert_icon = " 🚨" if not active_alert.empty else ""
-                
-                card_clicked = card(
-                    title=f"{weather_icon} {row.city}{alert_icon}",
-                    text=[
-                        f"Temp: {row.temp_min}°C / {row.temp_max}°C",
-                        f"UV Index: {row.uvi}",
-                        f"Rain: {row.rain_probability}% ({row.total_rain_mm} mm)"
-                    ],
-                    styles={
-                        "card": {"background-color": "#1E1E1E", "border": "1px solid #333"},
-                        "title": {"color": "white", "font-size": "18px"},
-                        "text": {"color": "white", "font-size": "14px"}
-                    },
-                    key=f"card_{row.Index}"
-                )
-                
-                if card_clicked:
-                    set_page('Detailed Analysis', row.city)
-                    st.rerun()
+                with st.container(border=True, height=280): # Control de altura
+                    # ⭐ LÓGICA DE ICONOS MEJORADA
+                    main_cond = str(row.main_condition).lower().strip()
+                    weather_cond = str(row.weather_condition).lower().strip()
+                    weather_icon = weather_icons.get(weather_cond, weather_icons.get(main_cond, "🌎"))
+
+                    active_alert = alerts_df[(alerts_df['city'] == row.city) & (alerts_df['start_time'].dt.date <= selected_date) & (alerts_df['end_time'].dt.date >= selected_date)]
+                    alert_icon = " 🚨" if not active_alert.empty else ""
+
+                    # ⭐ TARJETA MANUAL CON EMOJIS Y ESTILO COMPACTO
+                    st.markdown(f"<h6>{weather_icon} {row.city}{alert_icon}</h6>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                        <p style="font-size: 14px; margin-bottom: 5px;">
+                        🌡️ Temp: <b>{row.temp_min}°C / {row.temp_max}°C</b><br>
+                        ☀️ UV Index: <b>{row.uvi}</b><br>
+                        💧 Humidity: {row.humidity}%<br>
+                        🌧️ Rain: <b>{row.rain_probability}%</b> ({row.total_rain_mm} mm)
+                        </p>
+                    """, unsafe_allow_html=True)
+
+                    # ⭐ ALERTA DENTRO DE LA TARJETA
+                    if not active_alert.empty:
+                        with st.expander("View Alert"):
+                            st.warning(f"**{active_alert.iloc[0]['event']}**\n\n_{active_alert.iloc[0]['description']}_")
+                    
+                    # ⭐ BOTÓN DISCRETO PARA NAVEGAR
+                    if st.button("Details 📈", key=f"btn_{row.Index}", use_container_width=True):
+                        set_page('Detailed Analysis', row.city)
+                        st.rerun()
     else:
         st.warning("No weather data available for the selected filters.")
 
-# --- VIEW 2: DETAILED ANALYSIS (sin cambios en su lógica interna) ---
+# --- VIEW 2: DETAILED ANALYSIS ---
 elif st.session_state.page == 'Detailed Analysis' and all_data:
-    # ... (El código de esta sección es idéntico al de la respuesta anterior)
     selected_city = st.session_state.selected_city
     if selected_city:
         st.title(f"📊 Detailed Analysis for: {selected_city}")
         city_daily_df = all_data['daily'][all_data['daily']['city'] == selected_city]
         current_date = datetime.today().date()
+        
+        # Preview de Próximos Días
         st.subheader("🗓️ 7-Day Summary")
         future_forecast_preview = city_daily_df[city_daily_df['date'] >= current_date].head(7)
         if not future_forecast_preview.empty:
@@ -183,14 +168,20 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
             for idx, (_, row) in enumerate(future_forecast_preview.iterrows()):
                 with forecast_cols[idx]:
                     with st.container(border=True):
-                        forecast_icon = weather_icons.get(str(row['weather_condition']).lower().strip(), "🌎")
+                        # ⭐ LÓGICA DE ICONOS MEJORADA TAMBIÉN AQUÍ
+                        main_cond = str(row['main_condition']).lower().strip()
+                        weather_cond = str(row['weather_condition']).lower().strip()
+                        forecast_icon = weather_icons.get(weather_cond, weather_icons.get(main_cond, "🌎"))
                         st.markdown(f"""<div style="text-align: center; height: 130px;">
                                         <h6>{row['date'].strftime('%a, %d')}</h6>
                                         <p style="font-size: 35px; margin: -10px 0;">{forecast_icon}</p>
                                         <p><b>{row['temp_max']}°</b> / {row['temp_min']}°</p>
                                     </div>""", unsafe_allow_html=True)
-        st.markdown("---")
+        st.markdown("---") 
+
+        # Gráficos (sin cambios)
         st.subheader(f"🕒 Forecast for the Next 48 Hours")
+        # ... (código del gráfico sin cambios) ...
         city_hourly_df = all_data['hourly'][all_data['hourly']['city'] == selected_city]
         now = pd.Timestamp.now(tz='UTC').tz_localize(None)
         hourly_forecast_range = city_hourly_df[(city_hourly_df['forecast_time'] >= now) & (city_hourly_df['forecast_time'] <= now + timedelta(hours=48))]
@@ -200,7 +191,9 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
             fig_hourly.add_trace(go.Bar(x=hourly_forecast_range['forecast_time'], y=hourly_forecast_range['rain_probability'], name='Rain Probability (%)', yaxis='y2', marker_color='blue', opacity=0.6))
             fig_hourly.update_layout(title_text="Hourly Temperature & Rain Probability", yaxis=dict(title="Temperature (°C)", color='orange'), yaxis2=dict(title="Rain Probability (%)", overlaying='y', side='right', range=[0, 100], color='blue'), legend=dict(x=0, y=1.2, orientation="h"))
             st.plotly_chart(fig_hourly, use_container_width=True)
+
         st.subheader(f"📈 8-Day Temperature Trend")
+        # ... (código del gráfico sin cambios) ...
         future_forecast_trend = city_daily_df[city_daily_df['date'] >= current_date].head(8)
         if not future_forecast_trend.empty:
             fig_temp_range = go.Figure()
@@ -208,8 +201,7 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
             fig_temp_range.add_trace(go.Scatter(x=future_forecast_trend['date'], y=future_forecast_trend['temp_min'], mode='lines+markers', name='Min Temp', line=dict(color='lightblue'), fill='tonexty', fillcolor='rgba(255, 165, 0, 0.2)', text=future_forecast_trend['temp_min'].apply(lambda x: f'{x}°')))
             fig_temp_range.update_layout(title="Temperature Range for the Next Days", yaxis_title="Temperature (°C)")
             st.plotly_chart(fig_temp_range, use_container_width=True)
-        else:
-            st.warning("No future forecast data available for this city.")
+
     else:
         st.info("Use the search bar in the header to find a city.")
 elif not all_data:
