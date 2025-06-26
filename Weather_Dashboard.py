@@ -152,6 +152,22 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
     selected_city = st.session_state.selected_city
     if selected_city:
         st.title(f"📊 Detailed Analysis for: {selected_city}")
+        alerts_df = all_data['alerts']
+        current_date = datetime.today().date()
+        
+        city_active_alerts = alerts_df[
+            (alerts_df['city'] == selected_city) &
+            (alerts_df['start_time'].dt.date <= current_date) &
+            (alerts_df['end_time'].dt.date >= current_date)
+        ]
+
+        if not city_active_alerts.empty:
+            st.subheader("🚨 Active Alert(s) for this City")
+            for _, alert in city_active_alerts.iterrows():
+                st.warning(f"**{alert['event']}** (Source: {alert['sender_name']})\n\n"
+                           f"**Description:** {alert['description']}\n\n"
+                           f"**Active from:** {alert['start_time'].strftime('%Y-%m-%d')} **to** {alert['end_time'].strftime('%Y-%m-%d')}")
+            st.markdown("---")
         city_daily_df = all_data['daily'][all_data['daily']['city'] == selected_city]
         current_date = datetime.today().date()
         
