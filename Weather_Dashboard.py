@@ -182,7 +182,7 @@ elif st.session_state.page == 'Detailed Analysis' and all_data:
 
         if not future_forecast_preview.empty:
             forecast_cols = st.columns(len(future_forecast_preview))
-            for idx, row in future_forecast_preview.iterrows():
+            for idx, (_, row) in enumerate(future_forecast_preview.iterrows()):
                 with forecast_cols[idx]:
                     with st.container(border=True):
                         forecast_icon = weather_icons.get(row['weather_condition'].lower(), "🌎")
