@@ -1,3 +1,5 @@
+# NOT necessary anymore
+
 import pandas as pd
 import psycopg2
 import gspread
