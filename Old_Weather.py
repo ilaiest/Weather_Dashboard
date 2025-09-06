@@ -1,3 +1,4 @@
+#Older version do not use
 import time
 import requests
 import psycopg2
@@ -7,7 +8,7 @@ import concurrent.futures
 from cities import cities
 
 # Configuración de OpenWeather API
-API_KEY = '28e3a39a2393ba8667b8d038ba3a9f83'  # 🔹 Reemplázalo con tu API Key de OpenWeather
+API_KEY = 'api key'  # 🔹 Reemplázalo con tu API Key de OpenWeather
 BASE_URL = 'http://api.openweathermap.org/data/2.5/forecast'
 
 # Configuración de PostgreSQL
@@ -15,7 +16,7 @@ PG_CONFIG = {
     "host": "localhost",
     "database": "weather_db",
     "user": "postgres",
-    "password": "lazzeeli1"
+    "password": "password"
 }
 
 
